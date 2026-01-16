@@ -3,6 +3,8 @@ workflows:
     name: Over the Bike Fit - Android Release Build
     max_build_duration: 120
     instance_type: mac_mini_m2
+    # 여기에 실제 프로젝트가 들어있는 폴더 이름을 입력하세요.
+    working_directory: over_the_bike_fit 
 
     environment:
       flutter: stable
@@ -12,6 +14,3 @@ workflows:
         script: flutter pub get
       - name: Build APK
         script: flutter build apk --release
-
-    artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
