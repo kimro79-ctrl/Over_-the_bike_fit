@@ -1,32 +1,40 @@
 workflows:
   flutter-android-release:
     name: Over the Bike Fit - Android Release Build
-    instance_type: mac_mini_m2
     max_build_duration: 120
+    instance_type: mac_mini_m2
 
     environment:
       flutter: stable
 
     scripts:
-      - name: 압축 해제 및 환경 준비
+      - name: 압축 해제 및 안드로이드 설정 복구
         script: |
-          # 현재 경로의 모든 zip 파일을 찾아서 압축을 풉니다.
+          # 1. 압축 파일 해제
           unzip *.zip
           
-          # 압축이 풀린 폴더로 이동합니다. 
-          # (폴더명을 몰라도 이동할 수 있게 처리)
+          # 2. 프로젝트 폴더 찾기 및 이동
           PROJECT_DIR=$(find . -maxdepth 1 -type d -not -path '.*' | head -n 1)
           cd "$PROJECT_DIR"
           
-          # Flutter 의존성 가져오기
+          # 3. Gradle 관련 오류 방지를 위해 안드로이드 설정 파일 재생성
+          # (기존 코드는 유지하며 빌드 환경만 업데이트합니다)
+          flutter create . --platforms android
+          
+          # 4. 의존성 설치
           flutter pub get
           
       - name: Build APK
         script: |
-          # 위에서 찾은 폴더로 다시 이동하여 빌드합니다.
+          # 프로젝트 폴더로 다시 이동
           PROJECT_DIR=$(find . -maxdepth 1 -type d -not -path '.*' | head -n 1)
           cd "$PROJECT_DIR"
+          
+          # 빌드 전 캐시 정리 및 실행
+          flutter clean
+          flutter pub get
           flutter build apk --release
 
     artifacts:
+      # 빌드된 APK 파일을 찾아서 Codemagic 결과창에 표시합니다.
       - "**/build/app/outputs/flutter-apk/app-release.apk"
