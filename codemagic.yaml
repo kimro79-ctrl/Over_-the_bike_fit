@@ -1,19 +1,11 @@
 workflows:
-  flutter-android-release:
-    name: Flutter Android Release Build
-    max_build_duration: 120
+  android-build:   # 키 이름을 표준적으로 변경 (이게 가장 안정적)
+    name: Android Release APK Build
     instance_type: mac_mini_m2
+    max_build_duration: 120
     environment:
       flutter: stable
     scripts:
-      - name: Move to actual project root
-        script: |
-          pwd
-          ls -la
-          # repo 이름에 맞게 폴더 이름 변경 (대소문자 정확히)
-          cd Over_-the_bike_fit || cd over_the_bike_fit || cd Over-the-bike-fit || cd app || echo "No nested folder, staying in root"
-          pwd  # 이동 후 디렉토리 확인
-          ls -la  # pubspec.yaml이 여기 있는지 로그로 확인
       - name: Get dependencies
         script: flutter pub get
       - name: Build release APK
