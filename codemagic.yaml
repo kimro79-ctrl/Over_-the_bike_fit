@@ -3,8 +3,7 @@ workflows:
     name: Android Release Build
     max_build_duration: 60
     instance_type: mac_mini_m1
-    # 프로젝트가 들어있는 실제 폴더명을 지정합니다.
-    working_directory: over_the_bike_fit
+    working_directory: over_the_bike_fit  # 리포지토리 내의 실제 폴더명
     environment:
       flutter: stable
       java: 17
