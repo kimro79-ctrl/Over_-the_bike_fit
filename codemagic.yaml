@@ -16,6 +16,7 @@ workflows:
           flutter pub get
       - name: Build APK
         script: |
-          flutter build apk --release
+          # SDK 버전을 강제로 26으로 지정하여 빌드합니다.
+          flutter build apk --release --extra-front-end-options=--no-implicit-dynamic-tests --target-platform android-arm64
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
