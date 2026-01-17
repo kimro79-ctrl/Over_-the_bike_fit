@@ -1,7 +1,7 @@
 workflows:
   android-workflow:
     name: Android Release Build
-    # 마침표(.)는 깃허브 저장소의 가장 첫 화면(루트)을 의미합니다.
+    # working_directory를 반드시 마침표(.) 하나로 수정하세요.
     working_directory: . 
     environment:
       flutter: stable
