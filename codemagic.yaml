@@ -1,7 +1,7 @@
 workflows:
   android-workflow:
     name: Android Release Build
-    # working_directory를 반드시 마침표(.) 하나로 수정하세요.
+    # 마침표(.)는 저장소의 최상단(루트) 폴더를 의미합니다.
     working_directory: . 
     environment:
       flutter: stable
