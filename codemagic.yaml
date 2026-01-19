@@ -1,5 +1,5 @@
 workflows:
-  android-workflow:
+  bike-fit-build: # 이 이름을 사진 에러 메시지와 똑같이 맞췄습니다.
     name: Bike Fit Android Build
     max_build_duration: 60
     instance_type: mac_mini_m1
@@ -9,9 +9,6 @@ workflows:
       - name: Get dependencies
         script: |
           flutter pub get
-      - name: Generate Splash Screen
-        script: |
-          flutter pub run flutter_native_splash:create || true
       - name: Build APK
         script: |
           flutter build apk --release
