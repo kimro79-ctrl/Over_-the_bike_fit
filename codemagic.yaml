@@ -12,8 +12,14 @@ workflows:
 
       - |
         mkdir -p android/gradle/wrapper
-        echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
+        echo "distributionBase=GRADLE_USER_HOME" > android/gradle/wrapper/gradle-wrapper.properties
+        echo "distributionPath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+        echo "zipStoreBase=GRADLE_USER_HOME" >> android/gradle/wrapper/gradle-wrapper.properties
+        echo "zipStorePath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+        echo "distributionUrl=https://services.gradle.org/distributions/gradle-8.5-all.zip" >> android/gradle/wrapper/gradle-wrapper.properties
+
         echo "flutter.sdk=$HOME/programs/flutter" > android/local.properties
+        echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
 
       - flutter clean
       - flutter build apk --release --split-per-abi
