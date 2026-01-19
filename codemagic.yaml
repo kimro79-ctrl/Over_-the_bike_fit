@@ -1,6 +1,6 @@
 workflows:
-  android-workflow: # 워크플로 이름을 사진에 나온 'bike-fit-build' 대신 기본값으로 설정했습니다.
-    name: Android Build
+  android-workflow:
+    name: Bike Fit Android Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
