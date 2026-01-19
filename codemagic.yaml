@@ -1,11 +1,15 @@
 workflows:
-  bike-fit-build: # 이 이름을 사진 에러 메시지와 똑같이 맞췄습니다.
+  bike-fit-build:
     name: Bike Fit Android Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
       flutter: stable
     scripts:
+      - name: Project Initialize
+        script: |
+          # 비어있는 안드로이드 구조를 생성합니다.
+          flutter create . --platforms android
       - name: Get dependencies
         script: |
           flutter pub get
