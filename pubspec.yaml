@@ -1,7 +1,7 @@
 name: over_the_bike_fit
 description: A sporty fitness tracking app with real-time heart rate graph.
-publish_to: "none"
 version: 1.0.0+1
+publish_to: "none"
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -10,25 +10,17 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  # 스플래시 화면 자동 설정을 위한 패키지
-  flutter_native_splash: ^2.3.1
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_native_splash: ^2.3.1 # 스플래시 화면 제어
 
 flutter:
   uses-material-design: true
-
-  # 폴더명 'icon' 단수형 유지 (GitHub 구조 반영)
   assets:
     - assets/background.png
     - assets/icon/heart.png
     - assets/icon/bike_ui_dark.png
     - assets/splash/splash_screen.png
 
-# 스플래시 화면 상세 설정
+# 스플래시 화면 설정 (빌드 시 자동 생성됨)
 flutter_native_splash:
   color: "#000000"
   image: assets/splash/splash_screen.png
