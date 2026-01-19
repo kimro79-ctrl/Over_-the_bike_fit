@@ -1,5 +1,5 @@
 name: over_the_bike_fit
-description: Sporty fitness app with premium UI.
+description: Premium bike fitness app.
 version: 1.0.0+1
 publish_to: "none"
 
@@ -18,13 +18,12 @@ flutter:
     - assets/background.png
     - assets/icon/heart.png
     - assets/icon/bike_ui_dark.png
-    - assets/splash/splash_screen.png
+    - assets/splash_screen.png # 경로를 이미지 위치에 맞게 수정함
 
-# 스플래시 설정 (이미지 경로 다시 확인 필수)
 flutter_native_splash:
   color: "#000000"
-  image: assets/splash/splash_screen.png
+  image: assets/splash_screen.png # 경로 수정
   android_12:
-    image: assets/splash/splash_screen.png
+    image: assets/splash_screen.png # 경로 수정
     color: "#000000"
   fullscreen: true
