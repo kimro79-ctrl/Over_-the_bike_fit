@@ -1,6 +1,3 @@
-네, 한 번에 가겠습니다! 사용자의 요청대로 메인 심박수 숫자의 크기를 줄이고, 그래프와 정보를 한 화면에 더 짜임새 있게 배치한 최종 main.dart 코드입니다.
-이 코드를 적용하면 심박수 숫자가 기존보다 작아지면서 상단으로 올라가고, 그래프 영역이 더 넓어져서 한눈에 데이터를 확인하기 좋아집니다.
-수정된 lib/main.dart (숫자 크기 조절 및 레이아웃 최적화)
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -102,7 +99,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               const SizedBox(height: 20),
               const Text("OVER THE BIKE FIT", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 3, fontStyle: FontStyle.italic)),
               
-              // 워치 연결 버튼 (클릭 영역 최적화)
               GestureDetector(
                 onTap: _connectWatch,
                 child: Container(
@@ -115,7 +111,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
               const Spacer(flex: 1),
               
-              // [수정] 심박수 숫자 크기를 줄임 (100 -> 60)
               if (bpm > 0) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -128,7 +123,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                // 그래프 영역 확대
                 SizedBox(
                   height: 180,
                   width: MediaQuery.of(context).size.width * 0.9,
@@ -154,7 +148,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
               const Spacer(flex: 2),
 
-              // 운동 정보 레이아웃
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 color: Colors.black26,
@@ -176,7 +169,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 ),
               ),
 
-              // 하단 제어 버튼
               Padding(
                 padding: const EdgeInsets.fromLTRB(15, 10, 15, 30),
                 child: Row(children: [
@@ -224,9 +216,3 @@ class HistoryPage extends StatelessWidget {
     );
   }
 }
-
-✅ 변경 사항 요약
- * 숫자 크기: 심박수 폰트 크기를 100에서 65로 대폭 축소하여 세련된 느낌을 주었습니다.
- * 그래프 영역: 숫자가 차지하던 공간을 줄여 그래프 높이를 150에서 180으로 확대했습니다. 이제 심박수 변화가 훨씬 역동적으로 보일 것입니다.
- * 레이아웃: 상단 텍스트와 버튼들의 간격을 조절하여 전반적인 앱 디자인이 훨씬 정돈되었습니다.
-이 코드를 복사해서 GitHub에 올리고 Codemagic에서 다시 빌드하시면 됩니다. 이번 버전이 정말 완성판이 될 것 같네요! 빌드 후 마음에 드시는지 확인 부탁드립니다.
