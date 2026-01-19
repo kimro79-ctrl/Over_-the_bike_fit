@@ -1,33 +1,27 @@
 workflows:
   bike-fit-build:
-    name: Bike Fit Android Build
+    name: Bike Fit Final Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
       flutter: stable
     scripts:
-      - name: Initialize Project and Android Structure
+      - name: Initialize Project
         script: |
-          # 프로젝트 구조가 없으면 생성하여 안드로이드 폴더 확보
           flutter create . --platforms android
-          
-          # AndroidManifest.xml에 블루투스 스캔, 연결, 위치 권한 주입
+          # AndroidManifest.xml에 필수 블루투스 권한 자동 추가
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
           sed -i '' '/<application/i \
-          <uses-permission android:name="android.permission.BLUETOOTH_SCAN" /> \
+          <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" /> \
           <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /> \
           <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /> \
           <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>' $MANIFEST_PATH
-
       - name: Get dependencies
         script: |
           flutter pub get
-
       - name: Generate Splash Screen
         script: |
-          # 설정된 이미지로 스플래시 화면 강제 생성
           flutter pub run flutter_native_splash:create
-
       - name: Build APK
         script: |
           flutter build apk --release
