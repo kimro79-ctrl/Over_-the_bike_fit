@@ -1,6 +1,7 @@
 name: over_the_bike_fit
-description: A sporty and minimal fitness tracking Flutter app
+description: A sporty fitness tracking app with real-time heart rate graph.
 publish_to: "none"
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -17,6 +18,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # 이미지 파일 경로 설정 (폴더명 'icon' 단수형 확인 완료)
   assets:
     - assets/background.png
     - assets/icon/heart.png
