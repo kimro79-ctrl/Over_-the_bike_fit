@@ -6,13 +6,28 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Project Initialize
+      - name: Initialize Project and Android Structure
         script: |
-          # 비어있는 안드로이드 구조를 생성합니다.
+          # 프로젝트 구조가 없으면 생성하여 안드로이드 폴더 확보
           flutter create . --platforms android
+          
+          # AndroidManifest.xml에 블루투스 스캔, 연결, 위치 권한 주입
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          sed -i '' '/<application/i \
+          <uses-permission android:name="android.permission.BLUETOOTH_SCAN" /> \
+          <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /> \
+          <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /> \
+          <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>' $MANIFEST_PATH
+
       - name: Get dependencies
         script: |
           flutter pub get
+
+      - name: Generate Splash Screen
+        script: |
+          # 설정된 이미지로 스플래시 화면 강제 생성
+          flutter pub run flutter_native_splash:create
+
       - name: Build APK
         script: |
           flutter build apk --release
