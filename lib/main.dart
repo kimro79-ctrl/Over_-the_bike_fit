@@ -30,6 +30,7 @@ class WorkoutScreen extends StatefulWidget {
 
 class _WorkoutScreenState extends State<WorkoutScreen> {
   int bpm = 0;
+  int targetMinutes = 20; // 목표 시간 기본값
   int elapsedSeconds = 0;
   bool isRunning = false;
   String watchStatus = "탭하여 워치 연결";
@@ -43,15 +44,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   @override
   void initState() {
     super.initState();
-    // 3초 후 스플래시 제거
     Future.delayed(const Duration(seconds: 3), () => FlutterNativeSplash.remove());
   }
 
-  // 블루투스 워치 연결 로직
+  // 워치 연결 로직 (기존 유지)
   void _connectWatch() async {
     setState(() => watchStatus = "워치 찾는 중...");
     await FlutterBluePlus.startScan(withServices: [Guid("180d")], timeout: const Duration(seconds: 5));
-
     FlutterBluePlus.scanResults.listen((results) async {
       for (ScanResult r in results) {
         if (connectedDevice == null) {
@@ -66,11 +65,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _establishConnection(BluetoothDevice device) async {
     try {
       await device.connect();
-      setState(() {
-        connectedDevice = device;
-        watchStatus = "${device.platformName} 연결됨";
-      });
-
+      setState(() { connectedDevice = device; watchStatus = "${device.platformName} 연결됨"; });
       List<BluetoothService> services = await device.discoverServices();
       for (var service in services) {
         if (service.uuid == Guid("180d")) {
@@ -90,9 +85,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           }
         }
       }
-    } catch (e) {
-      setState(() => watchStatus = "연결 실패: 재시도");
-    }
+    } catch (e) { setState(() => watchStatus = "연결 실패: 재시도"); }
   }
 
   void _toggleWorkout() {
@@ -100,9 +93,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       isRunning = !isRunning;
       if (isRunning) {
         workoutTimer = Timer.periodic(const Duration(seconds: 1), (t) => setState(() => elapsedSeconds++));
-      } else {
-        workoutTimer?.cancel();
-      }
+      } else { workoutTimer?.cancel(); }
     });
   }
 
@@ -124,12 +115,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           child: Column(
             children: [
               const SizedBox(height: 40),
-              // 세련된 그라데이션 타이틀
+              // 세련된 타이틀
               ShaderMask(
                 shaderCallback: (bounds) => const LinearGradient(colors: [Colors.white, Colors.redAccent]).createShader(bounds),
                 child: const Text("OVER THE BIKE FIT", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 6, fontStyle: FontStyle.italic)),
               ),
               
+              // 워치 연결 상태
               GestureDetector(
                 onTap: _connectWatch,
                 child: Container(
@@ -149,18 +141,56 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               ),
 
               const Spacer(),
-              // 심박수 중앙 집중 UI
+              
+              // 중앙 디스플레이: 워치 연결 시 심박수, 아니면 기본 정보
               if (bpm > 0) ...[
                 Text("$bpm", style: const TextStyle(fontSize: 90, fontWeight: FontWeight.bold)),
                 const Text("BPM", style: TextStyle(color: Colors.redAccent, letterSpacing: 5)),
-                const SizedBox(height: 20),
-                SizedBox(height: 40, width: 220, child: CustomPaint(painter: MiniNeonPainter(heartPoints))),
+              ] else ...[
+                const Icon(Icons.pedal_bike, size: 80, color: Colors.white24),
+                const SizedBox(height: 10),
+                const Text("READY TO RIDE", style: TextStyle(color: Colors.grey, letterSpacing: 3)),
               ],
+
               const Spacer(),
+
+              // 정보 섹션 및 시간 조정 버튼
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // 운동시간 표시
+                    statUnit("운동시간", "${(elapsedSeconds ~/ 60).toString().padLeft(2, '0')}:${(elapsedSeconds % 60).toString().padLeft(2, '0')}", Colors.redAccent),
+                    
+                    // [부활] 목표시간 조정 섹션
+                    Column(
+                      children: [
+                        const Text("목표시간", style: TextStyle(color: Colors.grey, fontSize: 10)),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () => setState(() { if (targetMinutes > 1) targetMinutes--; }),
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.white54, size: 20),
+                            ),
+                            Text("$targetMinutes분", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                            IconButton(
+                              onPressed: () => setState(() { targetMinutes++; }),
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.white54, size: 20),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 30),
 
               // 하단 버튼 3등분 밸런스
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 30, 20, 50),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
                 child: Row(
                   children: [
                     actionBtn(isRunning ? "정지" : "시작", isRunning ? Colors.orange : Colors.redAccent, _toggleWorkout),
@@ -172,7 +202,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       }
                     }),
                     const SizedBox(width: 10),
-                    actionBtn("기록", Colors.blueGrey, () {}),
+                    actionBtn("기록", Colors.blueGrey, () {
+                      // 기록 보기 로직 추가 가능
+                    }),
                   ],
                 ),
               )
@@ -183,27 +215,17 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
+  Widget statUnit(String label, String val, Color col) => Column(children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)), const SizedBox(height: 10), Text(val, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: col))]);
+
   Widget actionBtn(String label, Color col, VoidCallback fn) => Expanded(
     child: ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: col, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-      onPressed: fn, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))
+      style: ElevatedButton.styleFrom(
+        backgroundColor: col, 
+        padding: const EdgeInsets.symmetric(vertical: 18), 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+      ),
+      onPressed: fn, 
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))
     )
   );
-}
-
-class MiniNeonPainter extends CustomPainter {
-  final List<double> points;
-  MiniNeonPainter(this.points);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.redAccent..strokeWidth = 2.0..style = PaintingStyle.stroke;
-    final path = Path();
-    final xStep = size.width / (points.length - 1);
-    path.moveTo(0, size.height / 2);
-    for (int i = 0; i < points.length; i++) {
-      path.lineTo(i * xStep, size.height - (points[i] % size.height));
-    }
-    canvas.drawPath(path, paint);
-  }
-  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
