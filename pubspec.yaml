@@ -1,5 +1,5 @@
 name: over_the_bike_fit
-description: Final version with Graph and Amazfit support.
+description: Final version without sound for stable build.
 version: 1.0.0+1
 
 environment:
@@ -11,19 +11,28 @@ dependencies:
   cupertino_icons: ^1.0.2
   flutter_native_splash: ^2.3.1
   flutter_blue_plus: ^1.31.1
-  fl_chart: ^0.66.0 # 실시간 심박수 그래프 기능을 위한 라이브러리
+  fl_chart: ^0.66.0
+  # audioplayers는 라이브러리만 유지 (코드에서 호출 안 함)
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: "^0.13.1"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/background.png
     - assets/splash/splash_screen.png
+    - assets/icon/app_icon.png
 
-# 스플래시 화면 설정 (이미지 경로 및 배경색)
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+
 flutter_native_splash:
   color: "#000000"
   image: assets/splash/splash_screen.png
