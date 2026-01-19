@@ -21,14 +21,13 @@ class _BikeFitAppState extends State<BikeFitApp> {
   @override
   void initState() {
     super.initState();
-    _loadApp();
+    _initApp();
   }
 
-  void _loadApp() async {
-    // 3초 대기 후 메인 화면으로 전환
+  void _initApp() async {
+    // 스플래시 노출 시간 및 초기화
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) setState(() => _isReady = true);
-    // 자연스러운 전환을 위해 500ms 후 스플래시 제거
     Timer(const Duration(milliseconds: 500), () => FlutterNativeSplash.remove());
   }
 
@@ -57,9 +56,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   int targetMinutes = 20;
   int elapsedSeconds = 0;
   bool isRunning = false;
-  List<double> heartPoints = List.generate(45, (index) => 10.0);
-  List<String> workoutHistory = []; // 기록 저장소
-  
+  List<double> heartPoints = List.generate(40, (index) => 10.0);
+  List<String> workoutHistory = [];
   Timer? dataTimer;
   Timer? workoutTimer;
 
@@ -69,8 +67,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     dataTimer = Timer.periodic(const Duration(milliseconds: 200), (t) {
       if (mounted) {
         setState(() {
-          bpm = 95 + Random().nextInt(10);
-          heartPoints.add(Random().nextDouble() * 20 + 5);
+          bpm = 96 + Random().nextInt(10);
+          heartPoints.add(Random().nextDouble() * 15 + 5);
           heartPoints.removeAt(0);
         });
       }
@@ -88,34 +86,32 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
-  // 운동 기록 보기 팝업 함수
   void _showHistory() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black.withOpacity(0.9),
+      backgroundColor: Colors.black.withOpacity(0.95),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            children: [
-              const Text("운동 기록", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.redAccent)),
-              const Divider(color: Colors.white10, height: 30),
-              Expanded(
-                child: workoutHistory.isEmpty
-                    ? const Center(child: Text("저장된 기록이 없습니다."))
-                    : ListView.builder(
-                        itemCount: workoutHistory.length,
-                        itemBuilder: (context, index) => ListTile(
-                          leading: const Icon(Icons.history, color: Colors.grey, size: 20),
-                          title: Text(workoutHistory[index], style: const TextStyle(fontSize: 14)),
-                        ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(25),
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Column(
+          children: [
+            const Text("운동 기록", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+            const Divider(color: Colors.white10, height: 30),
+            Expanded(
+              child: workoutHistory.isEmpty
+                  ? const Center(child: Text("기록이 없습니다."))
+                  : ListView.builder(
+                      itemCount: workoutHistory.length,
+                      itemBuilder: (context, index) => ListTile(
+                        leading: const Icon(Icons.history, color: Colors.grey, size: 20),
+                        title: Text(workoutHistory[index], style: const TextStyle(fontSize: 14)),
                       ),
-              ),
-            ],
-          ),
-        );
-      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -132,10 +128,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               const SizedBox(height: 30),
               const Text("Over the Bike Fit", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w200, letterSpacing: 5)),
               
-              // [크기 축소] 미니멀한 BPM 및 그래프 영역
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 60, vertical: 25),
-                padding: const EdgeInsets.all(15),
+                margin: const EdgeInsets.symmetric(horizontal: 60, vertical: 20),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   gradient: LinearGradient(
@@ -147,56 +142,49 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 child: Column(
                   children: [
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.favorite, color: Colors.redAccent, size: 16),
+                      const Icon(Icons.favorite, color: Colors.redAccent, size: 14),
                       const SizedBox(width: 8),
-                      Text("$bpm bpm", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text("$bpm bpm", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     ]),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      height: 40, 
-                      width: double.infinity, 
-                      child: CustomPaint(painter: MiniNeonPainter(heartPoints))
-                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(height: 30, width: double.infinity, child: CustomPaint(painter: MiniNeonPainter(heartPoints))),
                   ],
                 ),
               ),
 
               const Spacer(),
               
-              // 하단 컨트롤 패널 (그라데이션 일체형)
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(30, 40, 30, 50),
+                padding: const EdgeInsets.fromLTRB(25, 30, 25, 40),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.8), Colors.black],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.9), Colors.black],
                   ),
                 ),
                 child: Column(
                   children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                      statItem("운동시간", "${(elapsedSeconds ~/ 60).toString().padLeft(2, '0')}:${(elapsedSeconds % 60).toString().padLeft(2, '0')}", Colors.redAccent),
-                      statItem("목표시간", "$targetMinutes분", Colors.white),
+                      statUnit("운동시간", "${(elapsedSeconds ~/ 60).toString().padLeft(2, '0')}:${(elapsedSeconds % 60).toString().padLeft(2, '0')}", Colors.redAccent),
+                      statUnit("목표시간", "$targetMinutes분", Colors.white),
                     ]),
-                    const SizedBox(height: 40),
-                    Row(children: [
-                      actionBtn(isRunning ? "정지" : "시작", isRunning ? Colors.orange : Colors.redAccent, toggleWorkout),
-                      const SizedBox(width: 15),
-                      actionBtn("저장", Colors.green.withOpacity(0.7), () {
-                        setState(() {
-                          workoutHistory.add("${DateTime.now().hour}:${DateTime.now().minute} - ${elapsedSeconds ~/ 60}분 운동완료");
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("기록이 저장되었습니다.")));
-                      }),
-                      const SizedBox(width: 15),
-                      // 기록 확인 버튼
-                      IconButton(
-                        onPressed: _showHistory,
-                        icon: const Icon(Icons.list_alt, color: Colors.white, size: 28),
-                      )
-                    ]),
+                    const SizedBox(height: 35),
+                    // [수정] 버튼 밸런스 조정: 가로로 3등분 배치
+                    Row(
+                      children: [
+                        actionBtn(isRunning ? "정지" : "시작", isRunning ? Colors.orange : Colors.redAccent, toggleWorkout),
+                        const SizedBox(width: 10),
+                        actionBtn("저장", Colors.green.withOpacity(0.7), () {
+                          setState(() {
+                            workoutHistory.add("${DateTime.now().hour}:${DateTime.now().minute} - ${elapsedSeconds ~/ 60}분 운동완료");
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("기록 완료")));
+                        }),
+                        const SizedBox(width: 10),
+                        actionBtn("기록", Colors.blueGrey.withOpacity(0.7), _showHistory),
+                      ],
+                    ),
                   ],
                 ),
               )
@@ -207,11 +195,22 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  Widget statItem(String label, String val, Color col) => Column(children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)), Text(val, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: col))]);
-  Widget actionBtn(String label, Color col, VoidCallback fn) => Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: col, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: fn, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))));
+  Widget statUnit(String label, String val, Color col) => Column(children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)), Text(val, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: col))]);
+  
+  // 버튼 밸런스를 위한 위젯
+  Widget actionBtn(String label, Color col, VoidCallback fn) => Expanded(
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: col, 
+        padding: const EdgeInsets.symmetric(vertical: 18), 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+      ), 
+      onPressed: fn, 
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))
+    )
+  );
 }
 
-// 축소된 세밀한 그래프 Painter
 class MiniNeonPainter extends CustomPainter {
   final List<double> points;
   MiniNeonPainter(this.points);
@@ -227,7 +226,7 @@ class MiniNeonPainter extends CustomPainter {
       var y2 = size.height - points[i + 1];
       path.cubicTo(x1 + (xStep / 2), y1, x1 + (xStep / 2), y2, x2, y2);
     }
-    final paint = Paint()..color = Colors.redAccent..strokeWidth = 1.8..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    final paint = Paint()..color = Colors.redAccent..strokeWidth = 1.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
     canvas.drawPath(path, paint);
   }
   @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
