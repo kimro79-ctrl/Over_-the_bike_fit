@@ -9,7 +9,6 @@ workflows:
       - name: Initialize Project
         script: |
           flutter create . --platforms android
-          # AndroidManifest.xml에 필수 블루투스 권한 자동 추가
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
           sed -i '' '/<application/i \
           <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" /> \
