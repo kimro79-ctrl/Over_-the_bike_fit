@@ -1,10 +1,10 @@
 name: over_the_bike_fit
-description: Premium bike fitness app.
+description: A premium bike fitness app with neon UI.
+publish_to: 'none'
 version: 1.0.0+1
-publish_to: "none"
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -12,16 +12,21 @@ dependencies:
   cupertino_icons: ^1.0.2
   flutter_native_splash: ^2.3.1
 
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
 flutter:
   uses-material-design: true
   assets:
     - assets/background.png
     - assets/icon/heart.png
-    - assets/splash/splash_screen.png # 폴더 경로 반영
+    - assets/splash/splash_screen.png
 
 flutter_native_splash:
   color: "#000000"
-  image: assets/splash/splash_screen.png # 폴더 경로 반영
+  image: assets/splash/splash_screen.png
   android_12:
     image: assets/splash/splash_screen.png
     color: "#000000"
