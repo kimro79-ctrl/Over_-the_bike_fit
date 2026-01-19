@@ -1,5 +1,5 @@
 name: bike_fit_app
-description: 실내 바이크 핏 & 심박수 기반 운동 트래커 앱
+description: 실내 바이크 핏 & 심박수 기반 운동 트래커
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,25 +11,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_blue_plus: ^2.1.0          # BLE 심박수 연결 최신
-  flutter_native_splash: ^2.4.7      # 최신 버전 (2026년 기준)
-  permission_handler: ^11.3.1        # 블루투스/위치 런타임 권한
-  device_info_plus: ^10.1.0          # 플랫폼 분기용
-  intl: ^0.19.0                      # 시간 포맷팅
-  shared_preferences: ^2.3.0         # 운동 기록 영속 저장
+  flutter_blue_plus: ^2.1.0
+  flutter_native_splash: ^2.4.7
+  permission_handler: ^11.3.1
+  device_info_plus: ^10.1.0
+  intl: ^0.19.0
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
 
-flutter_native_splash:               # ← 반드시 최상위(top-level)에 위치
+flutter_native_splash:
   color: "#000000"
-  image: assets/splash.png           # 실제 스플래시 이미지 경로 (없으면 color만 사용)
+  image: assets/splash.png
   android: true
   ios: true
-  fullscreen: true                   # 전체 화면 스플래시
-  android_12:                        # Android 12+ 호환
+  fullscreen: true
+  android_12:
     color: "#000000"
     image: assets/splash.png
 
@@ -38,10 +38,4 @@ flutter:
 
   assets:
     - assets/background.png
-    - assets/splash.png              # 스플래시 이미지도 명시
-
-  # 필요 시 fonts 추가 예시
-  # fonts:
-  #   - family: CustomFont
-  #     fonts:
-  #       - asset: fonts/CustomFont.ttf
+    - assets/splash.png
