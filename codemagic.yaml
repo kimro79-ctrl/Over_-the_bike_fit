@@ -1,36 +1,49 @@
 workflows:
-  bike-fit-build:
-    name: BikeFit - Build Only
-    instance_type: mac_mini_m2
-    max_build_duration: 40
-
+  bike-fit-android-only:  # APK만 빌드하는 워크플로우 (iOS는 나중에 추가 가능)
+    name: BikeFit Android Build (No Gradle Folder)
+    instance_type: mac_mini_m2  # 또는 linux_m2_large, 비용/속도 균형 좋음
+    max_build_duration: 45
     environment:
-      flutter: stable
-      xcode: latest
+      flutter: stable  # 또는 특정 버전: 3.24.x 등
+      groups:
+        - app_credentials  # 필요 시 keystore 등 그룹 추가
 
     scripts:
-      - name: Get dependencies
+      - name: Install Flutter dependencies
         script: flutter pub get
 
-      - name: Build Android APK
+      - name: Force Gradle compatibility (declarative migration)
+        script: |
+          # Flutter가 android/ 생성 전에 Gradle wrapper 강제 업그레이드
+          mkdir -p android/gradle/wrapper
+          echo "distributionBase=GRADLE_USER_HOME" > android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-all.zip" >> android/gradle/wrapper/gradle-wrapper.properties
+
+          # local.properties 강제 생성 (Flutter SDK 경로 명시)
+          echo "flutter.sdk=$HOME/programs/flutter" > android/local.properties
+          echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
+
+      - name: Clean previous build artifacts
+        script: flutter clean
+
+      - name: Build Android APK (release)
         script: flutter build apk --release --split-per-abi
 
-      - name: Build Android App Bundle
+      - name: Build Android App Bundle (AAB, Google Play 추천)
         script: flutter build appbundle --release
-
-      - name: Build iOS IPA
-        script: flutter build ipa --release --export-options-plist=ios/exportOptions.plist
 
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/*.aab
-      - build/ios/ipa/*.ipa
-      - build/ios/ipa/*.dSYM.zip
+      - build/**/outputs/**/mapping.txt  # 디버깅용
 
     publishing:
       email:
         recipients:
-          - your@email.com
+          - your@email.com  # 빌드 완료 알림 받을 이메일
         notify:
           success: true
           failure: true
