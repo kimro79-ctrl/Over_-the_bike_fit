@@ -4,12 +4,12 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Reconstruct Project and Force Icon Settings
+      - name: Reconstruct Project and Force Custom Icon
         script: |
-          # 프로젝트 구조 재생성
+          # 프로젝트 구조 초기화
           flutter create --platforms android .
           
-          # 아이콘 설정을 AndroidManifest에 강제 주입
+          # AndroidManifest.xml에서 아이콘 이름을 @mipmap/ic_launcher로 강제 고정
           mkdir -p android/app/src/main
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -38,14 +38,15 @@ workflows:
               </application>
           </manifest>
           EOF
-      - name: Get packages and Generate Assets
+      - name: Generate Icon and Splash
         script: |
           flutter pub get
+          # 아이콘 생성기 실행 (이때 ic_launcher 파일들이 생성됨)
           flutter pub run flutter_launcher_icons:main
           flutter pub run flutter_native_splash:create
       - name: Build APK
         script: |
-          # 빌드 버전을 4000으로 올려서 시스템이 아이콘을 새로 읽도록 유도
-          flutter build apk --release --build-name=4.0.0 --build-number=4000
+          # 빌드 번호를 8000으로 올려서 시스템 캐시 무시 유도
+          flutter build apk --release --build-name=8.0.0 --build-number=8000
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
