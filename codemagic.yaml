@@ -1,31 +1,15 @@
 workflows:
   android-workflow:
-    name: Over The Bike Fit Build
+    name: Over The Bike Fit Final
     instance_type: mac_mini_m1
-    max_build_duration: 60
     environment:
       flutter: stable
-      groups:
-        - google_play_credentials # 설정되어 있지 않아도 빌드에는 영향 없음
     scripts:
-      - name: Reconstruct Project Structure
-        script: |
-          # 모바일 작업 시 누락되는 android 폴더 및 빌드 구조를 서버에서 강제 생성
-          flutter create --platforms android .
-      - name: Get Flutter packages
-        script: |
-          flutter pub get
-      - name: Generate App Icons
-        script: |
-          # 아이콘 생성을 시도하고, 실패하더라도 빌드를 중단하지 않음
-          flutter pub run flutter_launcher_icons || true
-      - name: Flutter build APK
-        script: |
-          # 빌드 번호를 80으로 올려서 새 버전으로 인식하게 함
-          flutter build apk --release --build-name=1.0.1 --build-number=80
+      - name: Project Setup
+        script: flutter create --platforms android .
+      - name: Get Packages
+        script: flutter pub get
+      - name: Build APK
+        script: flutter build apk --release --build-number=100
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
-    publishing:
-      email:
-        recipients:
-          - YOUR_EMAIL@example.com # 본인 이메일로 수정 가능
