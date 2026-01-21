@@ -1,19 +1,26 @@
 workflows:
-  android-workflow:
-    name: Bike Fit Build
-    instance_type: mac_mini_m1
+  android-release:
+    name: OverTheBikeFit Android Release
+    max_build_duration: 60
     environment:
       flutter: stable
+      xcode: latest
+      vars:
+        PACKAGE_NAME: "com.over.bikefit"
     scripts:
-      - name: Reconstruct Project
-        script: |
-          flutter clean
-          flutter create --platforms android .
-      - name: Get packages
-        script: flutter pub get
-      - name: Build APK
-        script: |
-          # 빌드 번호를 300으로 대폭 상승
-          flutter build apk --release --build-name=1.3.0 --build-number=300
+      - echo "🚴 Building OverTheBikeFit APK..."
+      - flutter clean
+      - flutter pub get
+      - flutter pub run flutter_launcher_icons
+      - flutter pub run flutter_native_splash:create
+      - flutter build apk --release
+      - echo "✅ APK build completed!"
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: "main"
+          include: true
+          source: true
