@@ -4,12 +4,12 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Reconstruct Project and Fix V1 Embedding
+      - name: Reconstruct Project and Fix Icon Path
         script: |
-          # 안드로이드 프로젝트 구조 재생성
+          # 안드로이드 구조 재생성 및 V2 임베딩 적용
           flutter create --platforms android .
           
-          # 최신 v2 임베딩 규격으로 권한 파일 강제 주입
+          # 권한 파일 강제 주입 (meta-data 포함하여 V1 오류 방지)
           mkdir -p android/app/src/main
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -19,10 +19,8 @@ workflows:
               <application
                   android:label="OverTheBikeFit"
                   android:name="\${applicationName}"
-                  android:icon="@mipmap/launcher_icon">
-                  <meta-data
-                      android:name="flutterEmbedding"
-                      android:value="2" />
+                  android:icon="@mipmap/ic_launcher">
+                  <meta-data android:name="flutterEmbedding" android:value="2" />
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
@@ -39,15 +37,15 @@ workflows:
               </application>
           </manifest>
           EOF
-      - name: Get packages
-        script: flutter pub get
-      - name: Generate Assets
+      - name: Get packages and Generate Assets
         script: |
+          flutter pub get
+          # 아이콘과 스플래시 생성
           flutter pub run flutter_launcher_icons:main
           flutter pub run flutter_native_splash:create
       - name: Build APK
         script: |
-          # 빌드 번호를 2000으로 올려서 완전히 새 앱으로 배포
-          flutter build apk --release --build-name=2.0.0 --build-number=2000
+          # 리소스 누락 에러 방지를 위한 클린 빌드
+          flutter build apk --release --build-name=2.1.0 --build-number=2100
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
