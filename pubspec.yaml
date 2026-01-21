@@ -1,6 +1,6 @@
 name: over_the_bike_fit
-description: Final stable build
-version: 2.1.0+2100
+description: Bike Fit App with Heart Rate Tracking
+version: 3.1.0+3100
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -8,6 +8,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.2
   flutter_blue_plus: ^1.31.1
   fl_chart: ^0.66.0
   permission_handler: ^12.0.1
@@ -15,23 +16,34 @@ dependencies:
   flutter_native_splash: ^2.4.1
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_launcher_icons: "^0.13.1"
 
 flutter:
   uses-material-design: true
+
+  # 이미지 리소스가 이 경로에 반드시 있어야 합니다.
   assets:
     - assets/background.png
     - assets/splash/splash_screen.png
     - assets/icon/app_icon.png
 
-# 아이콘 생성 설정을 더 명확하게 수정
+# 1. 앱 아이콘 설정 (빨간색 사이클 로고)
 flutter_launcher_icons:
-  android: true
+  android: "ic_launcher" # 안드로이드 기본 아이콘 이름을 ic_launcher로 지정
   ios: true
   image_path: "assets/icon/app_icon.png"
-  adaptive_icon_background: "#000000"
+  adaptive_icon_background: "#000000" # 배경은 검정색
   adaptive_icon_foreground: "assets/icon/app_icon.png"
 
+# 2. 스플래시 화면 설정 (검정색 배경 로고)
 flutter_native_splash:
-  color: "#000000"
-  image: assets/splash/splash_screen.png
+  color: "#000000" # 배경 검정
+  image: "assets/splash/splash_screen.png" # 로고 이미지
+  # 안드로이드 12 이상에서 스플래시가 생략되는 것을 방지
+  android_12:
+    image: "assets/splash/splash_screen.png"
+    color: "#000000"
+  fullscreen: true
+  android_gravity: center
