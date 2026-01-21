@@ -12,7 +12,7 @@ dependencies:
   flutter_native_splash: ^2.3.1
   flutter_blue_plus: ^1.31.1
   fl_chart: ^0.66.0
-  # audioplayers는 라이브러리만 유지 (코드에서 호출 안 함)
+  permission_handler: ^12.0.1  # ← 런타임 권한 처리용 추가
 
 dev_dependencies:
   flutter_test:
