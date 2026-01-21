@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  flutter_native_splash: ^2.4.1  # ← 최신으로 업그레이드 (black screen fix 강화)
+  flutter_native_splash: ^2.4.1  # 2026년 최신 – Android 15 black fix 포함
   flutter_blue_plus: ^1.31.1
   fl_chart: ^0.66.0
   permission_handler: ^12.0.1
