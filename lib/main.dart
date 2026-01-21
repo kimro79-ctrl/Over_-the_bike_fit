@@ -9,12 +9,9 @@ import 'dart:convert';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  // 스플래시 화면 유지
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  
   runApp(const BikeFitApp());
 
-  // 앱이 켜지고 최소 2.5초는 스플래시를 보여줌
   await Future.delayed(const Duration(milliseconds: 2500));
   FlutterNativeSplash.remove();
 }
@@ -65,18 +62,27 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
-  // 워치 연결 로직 (오류 수정됨)
+  // 블루투스 권한 및 스캔 로직
   void _startScan() async {
-    // 안드로이드 근처 기기 권한 요청
-    await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
+    // 1. 권한 요청 (이 과정이 있어야 시스템 설정에 권한이 뜹니다)
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ].request();
+
+    if (statuses[Permission.bluetoothConnect]!.isDenied) {
+      setState(() => watchStatus = "권한을 허용해주세요");
+      openAppSettings(); // 권한이 거부된 경우 설정창으로 유도
+      return;
+    }
 
     setState(() => watchStatus = "워치 탐색 중...");
     
-    // FlutterBluePlus 최신 버전 문법으로 수정
     try {
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
     } catch (e) {
-      setState(() => watchStatus = "블루투스를 켜주세요");
+      setState(() => watchStatus = "블루투스 확인 필요");
       return;
     }
 
@@ -84,21 +90,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     scanSubscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult r in results) {
         String name = r.device.platformName.toLowerCase();
-        // 탐색 범위를 넓힘 (Amazfit 외 일반 워치 포함)
         if (name.contains("watch") || name.contains("fit") || name.contains("amazfit") || 
             r.advertisementData.serviceUuids.contains(Guid("180d"))) {
-          
           FlutterBluePlus.stopScan();
-          _establishConnection(r.device);
+          _connectToDevice(r.device);
           break;
         }
       }
     });
   }
 
-  void _establishConnection(BluetoothDevice device) async {
+  void _connectToDevice(BluetoothDevice device) async {
     try {
-      await device.connect();
+      await device.connect(autoConnect: false);
       setState(() {
         connectedDevice = device;
         watchStatus = "연결됨: ${device.platformName}";
@@ -147,15 +151,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 10),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: connectedDevice != null ? neonColor : Colors.white54),
-                    borderRadius: BorderRadius.circular(20)
-                  ),
-                  child: Text(watchStatus, style: TextStyle(fontSize: 13, color: connectedDevice != null ? neonColor : Colors.white70)),
+                  decoration: BoxDecoration(border: Border.all(color: neonColor), borderRadius: BorderRadius.circular(20)),
+                  child: Text(watchStatus, style: const TextStyle(fontSize: 13, color: neonColor)),
                 ),
               ),
 
-              // 심박수 영역
+              // 심박수 박스
               Container(
                 margin: const EdgeInsets.all(20),
                 padding: const EdgeInsets.all(15),
@@ -184,7 +185,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
               const Spacer(),
 
-              // 컨트롤 패널
+              // 하단 컨트롤러
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
                 decoration: BoxDecoration(
@@ -217,7 +218,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         });
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setString('workoutLogs', jsonEncode(workoutLogs));
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("저장 완료!")));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("기록 완료")));
                       }
                     }),
                     const SizedBox(width: 10),
@@ -260,7 +261,7 @@ class HistoryPage extends StatelessWidget {
         itemBuilder: (context, i) => ListTile(
           leading: const Icon(Icons.directions_bike, color: Color(0xFF00E5FF)),
           title: Text("${logs[i]['date']} 운동"),
-          subtitle: Text("시간: ${logs[i]['time']} | 최고 심박: ${logs[i]['maxBpm']} BPM"),
+          subtitle: Text("시간: ${logs[i]['time']} | 심박: ${logs[i]['maxBpm']} BPM"),
         ),
       ),
     );
