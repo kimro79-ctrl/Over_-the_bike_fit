@@ -42,7 +42,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   List<Map<String, dynamic>> workoutLogs = [];
 
   BluetoothDevice? connectedDevice;
-  StreamSubscription? hrSubscription;
   Timer? workoutTimer;
 
   @override
@@ -54,7 +53,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Future<void> _loadLogs() async {
     final prefs = await SharedPreferences.getInstance();
     final String? data = prefs.getString('workout_history');
-    if (data != null) setState(() => workoutLogs = List<Map<String, dynamic>>.from(json.decode(data)));
+    if (data != null) {
+      setState(() => workoutLogs = List<Map<String, dynamic>>.from(json.decode(data)));
+    }
   }
 
   Future<void> _saveLog(Map<String, dynamic> log) async {
@@ -70,7 +71,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
     FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult r in results) {
-        if (r.device.platformName.toLowerCase().contains("watch") || r.device.platformName.toLowerCase().contains("amazfit")) {
+        String name = r.device.platformName.toLowerCase();
+        if (name.contains("watch") || name.contains("amazfit") || r.advertisementData.serviceUuids.contains(Guid("180d"))) {
           FlutterBluePlus.stopScan();
           _establishConnection(r.device);
           break;
@@ -80,33 +82,37 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _establishConnection(BluetoothDevice device) async {
-    await device.connect();
-    setState(() {
-      connectedDevice = device;
-      watchStatus = "연결됨: ${device.platformName}";
-    });
-    List<BluetoothService> services = await device.discoverServices();
-    for (var s in services) {
-      if (s.uuid == Guid("180d")) {
-        for (var c in s.characteristics) {
-          if (c.uuid == Guid("2a37")) {
-            await c.setNotifyValue(true);
-            c.lastValueStream.listen((value) {
-              if (value.isNotEmpty && mounted) {
-                setState(() {
-                  bpm = value[1];
-                  heartRateSpots.add(FlSpot(heartRateSpots.length.toDouble(), bpm.toDouble()));
-                  if (heartRateSpots.length > 50) heartRateSpots.removeAt(0);
-                });
-              }
-            });
+    try {
+      await device.connect();
+      setState(() {
+        connectedDevice = device;
+        watchStatus = "연결됨: ${device.platformName}";
+      });
+      List<BluetoothService> services = await device.discoverServices();
+      for (var s in services) {
+        if (s.uuid == Guid("180d")) {
+          for (var c in s.characteristics) {
+            if (c.uuid == Guid("2a37")) {
+              await c.setNotifyValue(true);
+              c.lastValueStream.listen((value) {
+                if (value.isNotEmpty && mounted) {
+                  setState(() {
+                    bpm = value[1];
+                    heartRateSpots.add(FlSpot(heartRateSpots.length.toDouble(), bpm.toDouble()));
+                    if (heartRateSpots.length > 50) heartRateSpots.removeAt(0);
+                  });
+                }
+              });
+            }
           }
         }
       }
+    } catch (e) {
+      setState(() => watchStatus = "연결 실패");
     }
   }
 
-  // 빌드 에러가 났던 UI 함수들입니다. 반드시 _WorkoutScreenState 안에 있어야 합니다.
+  // --- UI 컴포넌트 함수들 (클래스 내부 위치) ---
   Widget _infoBox(String label, String value, Color color) {
     return Column(children: [
       Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
@@ -128,24 +134,30 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Widget _btn(String text, Color color, VoidCallback onTap) {
     return Expanded(child: ElevatedButton(
       style: ElevatedButton.styleFrom(backgroundColor: color, padding: const EdgeInsets.symmetric(vertical: 15)),
-      onPressed: onTap, child: Text(text, style: const TextStyle(color: Colors.white))
+      onPressed: onTap, child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
     ));
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color neonColor = Color(0xFF00E5FF);
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(image: DecorationImage(image: AssetImage("assets/background.png"), fit: BoxFit.cover)),
         child: SafeArea(
           child: Column(children: [
             const SizedBox(height: 20),
-            const Text("OVER THE BIKE FIT", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
-            GestureDetector(onTap: _connectWatch, child: Text(watchStatus, style: const TextStyle(color: Colors.cyan))),
+            const Text("OVER THE BIKE FIT", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic, letterSpacing: 2)),
+            GestureDetector(onTap: _connectWatch, child: Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+              decoration: BoxDecoration(border: Border.all(color: neonColor), borderRadius: BorderRadius.circular(20)),
+              child: Text(watchStatus, style: const TextStyle(color: neonColor, fontSize: 12)),
+            )),
             const Spacer(),
             Container(
               padding: const EdgeInsets.all(20),
-              color: Colors.black54,
+              decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
               child: Column(children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
                   _infoBox("운동시간", "${elapsedSeconds ~/ 60}:${(elapsedSeconds % 60).toString().padLeft(2, '0')}", Colors.redAccent),
@@ -162,9 +174,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   }),
                   const SizedBox(width: 10),
                   _btn("저장", Colors.green, () {
-                    _saveLog({"date": "오늘", "time": "${elapsedSeconds ~/ 60}분", "bpm": "$bpm"});
+                    if (elapsedSeconds > 0) {
+                      _saveLog({"date": "${DateTime.now().month}/${DateTime.now().day}", "time": "${elapsedSeconds ~/ 60}분", "bpm": "$bpm"});
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("기록 저장됨")));
+                    }
                   }),
-                ])
+                ]),
+                const SizedBox(height: 10),
+                const Text("본 앱은 의료기기가 아니며 데이터는 참고용입니다.", style: TextStyle(fontSize: 9, color: Colors.white24)),
               ]),
             ),
           ]),
