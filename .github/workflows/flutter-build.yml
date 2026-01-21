@@ -1,23 +1,64 @@
-name: Flutter APK Build
+name: Flutter Release APK Build
+
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read   # checkout에 필요
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      # 1. 코드 전체 체크아웃
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # 2. Java 17 설치 (Android 빌드 필수 – temurin 안정적)
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - uses: subosito/flutter-action@v2
+
+      # 3. Flutter 환경 설치 (stable 최신 자동)
+      - name: Install Flutter SDK
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
-      - run: flutter pub get
-      - run: flutter build apk --debug
-      - uses: actions/upload-artifact@v4
+          channel: 'stable'
+          cache: true   # 내장 캐시 지원 활용 (v2.18+부터 강화됨)
+
+      # 4. pub dependencies 캐시 (pubspec.lock 기반 키 – hit 시 90%+ 시간 절감)
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        id: pub-cache
         with:
-          name: bike-app
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: |
+            ~/.pub-cache
+            .flutter-plugins
+            .flutter-plugins-dependencies
+          key: \( {{ runner.os }}-flutter-pub- \){{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      # 5. 이전 빌드 잔재 제거 + 패키지 설치
+      - name: Clean project & fetch dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      # 6. 릴리스 APK 빌드 (split-per-abi → armeabi-v7a, arm64-v8a, x86_64 별도 파일 생성)
+      - name: Build release APKs with split ABI
+        run: flutter build apk --release --split-per-abi
+
+      # 7. 생성된 모든 APK 업로드 (artifact로 7일 보관)
+      - name: Upload release APKs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bike-app-release-apks
+          path: build/app/outputs/flutter-apk/app-*-release.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
