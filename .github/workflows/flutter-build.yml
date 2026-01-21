@@ -1,24 +1,42 @@
 name: Flutter APK Build
+
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17' # 안드로이드 빌드에 가장 안정적인 버전
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: 'stable'
-      - name: Get dependencies
+          cache: true
+
+      - name: Get Dependencies
         run: flutter pub get
-      - name: Generate Icon
-        run: flutter pub run flutter_launcher_icons:main
+
+      - name: Generate Assets (Icon & Splash)
+        run: |
+          # 아이콘과 스플래시 강제 생성
+          flutter pub run flutter_launcher_icons:main
+          flutter pub run flutter_native_splash:create
+
       - name: Build APK
-        run: flutter build apk --debug
-      - name: Upload APK
+        run: flutter build apk --debug --build-name=1.0.0 --build-number=1
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: over-the-bike-fit-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
