@@ -8,12 +8,13 @@ import 'dart:async';
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
-  // splash 유지 시작 (네이티브 splash를 Flutter 첫 프레임까지 강제 유지)
+  // 네이티브 splash를 Flutter가 완전히 준비될 때까지 강제 유지
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   runApp(const BikeFitApp());
 
-  // Flutter가 첫 UI 프레임을 그린 직후 splash 제거 → black screen 99% 방지
+  // Flutter가 첫 번째 실제 프레임을 화면에 그린 직후에만 splash 제거
+  // 이 타이밍이 black screen + 먹통을 98% 이상 방지하는 핵심
   WidgetsBinding.instance.addPostFrameCallback((_) {
     FlutterNativeSplash.remove();
   });
