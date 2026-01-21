@@ -4,12 +4,12 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Reconstruct Project and Inject Permissions
+      - name: Reconstruct Project and Fix V1 Embedding
         script: |
-          # 안드로이드 구조가 없으면 자동으로 생성
+          # 안드로이드 프로젝트 구조 재생성
           flutter create --platforms android .
           
-          # 블루투스 권한 파일을 강제로 주입 (워치 연동 해결)
+          # 최신 v2 임베딩 규격으로 권한 파일 강제 주입
           mkdir -p android/app/src/main
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -20,6 +20,9 @@ workflows:
                   android:label="OverTheBikeFit"
                   android:name="\${applicationName}"
                   android:icon="@mipmap/launcher_icon">
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      android:value="2" />
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
@@ -44,7 +47,7 @@ workflows:
           flutter pub run flutter_native_splash:create
       - name: Build APK
         script: |
-          # 빌드 번호를 1500으로 올려 구버전 캐시 무시
-          flutter build apk --release --build-name=1.5.0 --build-number=1500
+          # 빌드 번호를 2000으로 올려서 완전히 새 앱으로 배포
+          flutter build apk --release --build-name=2.0.0 --build-number=2000
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
