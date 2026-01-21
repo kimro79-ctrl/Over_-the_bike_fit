@@ -5,22 +5,21 @@ workflows:
     max_build_duration: 60
     environment:
       flutter: stable
-      groups:
-        - keystore_credentials
     scripts:
       - name: Get Flutter packages
         script: |
           flutter pub get
-      - name: Generate App Icons # 아이콘을 강제로 생성하는 핵심 단계
+      - name: Generate App Icons
         script: |
+          # 아이콘을 강제로 생성하는 핵심 명령어입니다.
           flutter pub run flutter_launcher_icons
       - name: Flutter build APK
         script: |
-          # local.properties 없이도 빌드 가능하도록 기본 설정으로 빌드
-          flutter build apk --release --build-name=1.0.1 --build-number=2
+          # 버전을 1.0.1+3으로 올려서 새 앱으로 인식하게 합니다.
+          flutter build apk --release --build-name=1.0.1 --build-number=3
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
     publishing:
       email:
         recipients:
-          - YOUR_EMAIL@example.com # 본인 이메일 주소로 수정
+          - YOUR_EMAIL@example.com
