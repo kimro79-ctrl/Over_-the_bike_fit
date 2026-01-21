@@ -6,16 +6,20 @@ workflows:
     environment:
       flutter: stable
     scripts:
+      - name: Reconstruct Project Structure
+        script: |
+          # 모바일 작업 시 누락되는 안드로이드 폴더를 강제로 생성합니다.
+          flutter create --platforms android .
       - name: Get Flutter packages
         script: |
           flutter pub get
       - name: Generate App Icons
         script: |
-          # 폴더가 없어도 빌드가 멈추지 않게 || true를 붙입니다.
+          # 폴더 생성 후 아이콘 적용을 시도합니다.
           flutter pub run flutter_launcher_icons || true
       - name: Flutter build APK
         script: |
-          # Gradle 프로젝트 에러를 방지하기 위해 강제 빌드 시도
-          flutter build apk --release --build-name=1.0.1 --build-number=7
+          # 버전을 올려서 새 앱으로 인식하게 함
+          flutter build apk --release --build-name=1.0.1 --build-number=10
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
