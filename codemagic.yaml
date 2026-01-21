@@ -1,23 +1,22 @@
 workflows:
   android-release:
-    name: OverTheBikeFit Android Build
-    max_build_duration: 60
+    name: OverTheBikeFit Build
     environment:
       flutter: stable
     scripts:
-      - echo "🚴 Building OverTheBikeFit APK..."
-      - flutter clean
-      - flutter pub get
-      - flutter pub run flutter_launcher_icons
-      - flutter pub run flutter_native_splash:create
-      - flutter build apk --release
-      - echo "✅ APK build completed!"
+      - name: Initialize Project
+        script: |
+          flutter clean
+          flutter create --platforms android .
+          flutter pub get
+      - name: Generate Assets
+        script: |
+          # 아이콘 및 스플래시 생성
+          flutter pub run flutter_launcher_icons
+          flutter pub run flutter_native_splash:create
+      - name: Build APK
+        script: |
+          # 빌드 번호를 500으로 높여서 강제 업데이트 인식
+          flutter build apk --release --build-name=1.0.5 --build-number=500
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: "main"
-          include: true
-          source: true
