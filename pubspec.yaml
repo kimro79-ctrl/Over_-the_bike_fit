@@ -1,31 +1,37 @@
-name: Flutter Build
-on: [push, workflow_dispatch]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - uses: subosito/flutter-action@v2
-        with:
-          # v1 구조를 그나마 허용했던 약간 이전 버전을 사용합니다.
-          flutter-version: '3.19.6' 
-          channel: 'stable'
+name: over_the_bike_fit
+description: Bike Fit App Final
+version: 1.0.0+1
+environment:
+  # 서버 버전(3.3.4)에 맞게 하한선을 낮춤
+  sdk: '>=3.0.0 <4.0.0'
 
-      - name: 강제 빌드 환경 조성
-        run: |
-          flutter pub get
-          # 아이콘 생성이 실패해도 무시하고 진행
-          flutter pub run flutter_launcher_icons:main || true
-          # v1 임베딩 경고를 무시하고 APK를 강제로 생성하는 옵션 추가
-          flutter build apk --debug --no-tree-shake-icons --no-version-check
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_blue_plus: ^1.31.1
+  fl_chart: ^0.66.0
+  # 충돌 가능성이 높은 라이브러리 버전을 안정권으로 조정
+  permission_handler: ^11.0.0
+  shared_preferences: ^2.2.0
+  flutter_native_splash: ^2.4.0
 
-      - name: APK 추출
-        uses: actions/upload-artifact@v4
-        with:
-          name: bike-app-final
-          # 위치에 상관없이 생성된 APK를 모두 찾아 업로드
-          path: "**/build/app/outputs/flutter-apk/app-debug.apk"
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: "^0.13.1"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/background.png
+    - assets/splash/splash_screen.png
+    - assets/icon/app_icon.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+
+flutter_native_splash:
+  color: "#000000"
+  image: "assets/splash/splash_screen.png"
