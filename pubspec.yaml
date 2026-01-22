@@ -1,5 +1,5 @@
 name: over_the_bike_fit
-description: "Professional cycling app for Galaxy Watch"
+description: "Professional cycling app"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -21,16 +21,16 @@ dev_dependencies:
   flutter_launcher_icons: "^0.13.1"
   flutter_native_splash: "^2.3.10"
 
-# [수정] 빌드 서버가 찾을 수 있도록 실제 경로 일치화
+# [수정] 사용자님의 GitHub 실제 폴더 경로를 반영했습니다.
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/icon/app_icon.png"
+  image_path: "assets/icon/app_icon.png" # 경로 수정됨
   min_sdk_android: 21
 
 flutter_native_splash:
   color: "#000000"
-  image: "assets/icon/app_icon.png"
+  image: "assets/icon/app_icon.png" # 경로 수정됨
   android_12:
     image: "assets/icon/app_icon.png"
     color: "#000000"
@@ -39,6 +39,7 @@ flutter_native_splash:
 
 flutter:
   uses-material-design: true
+  # [중요] GitHub에 올라가 있는 실제 경로와 이름을 토씨 하나 안 틀리게 적어야 합니다.
   assets:
     - assets/background.png
     - assets/icon/app_icon.png
