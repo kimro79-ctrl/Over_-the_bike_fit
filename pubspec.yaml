@@ -1,6 +1,6 @@
 name: over_the_bike_fit
 description: Final Optimized Build
-version: 1.1.0+11  # 버전을 올려서 시스템 캐시 갱신 유도
+version: 1.1.0+11  # 시스템 캐시 갱신용
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -27,7 +27,6 @@ flutter:
     - assets/splash/splash_screen.png
     - assets/icon/app_icon.png
 
-# 아이콘 생성 설정
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
@@ -35,10 +34,11 @@ flutter_launcher_icons:
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
 
-# 스플래시 화면 설정
 flutter_native_splash:
   color: "#000000"
   image: "assets/splash/splash_screen.png"
+  android_gravity: center
+  ios_content_mode: center
   android_12:
     image: "assets/splash/splash_screen.png"
     color: "#000000"
