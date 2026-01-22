@@ -1,17 +1,17 @@
 name: over_the_bike_fit
-description: Final Optimized Build
-version: 1.1.0+11  # 시스템 캐시 갱신용
+description: Bike Fit App Final
+version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  # 이 부분을 3.5.0 이상도 수용 가능하게 수정
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
   flutter_blue_plus: ^1.31.1
   fl_chart: ^0.66.0
-  permission_handler: ^12.0.1
+  permission_handler: ^11.4.0
   shared_preferences: ^2.3.2
   flutter_native_splash: ^2.4.1
 
@@ -31,14 +31,7 @@ flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
   image_path: "assets/icon/app_icon.png"
-  adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/icon/app_icon.png"
 
 flutter_native_splash:
   color: "#000000"
   image: "assets/splash/splash_screen.png"
-  android_gravity: center
-  ios_content_mode: center
-  android_12:
-    image: "assets/splash/splash_screen.png"
-    color: "#000000"
