@@ -1,10 +1,9 @@
 name: over_the_bike_fit
-description: Final Stable Build
+description: Final Build Stable
 version: 1.0.0+1
 
 environment:
-  # 서버의 Dart 3.3.0 버전과 충돌하지 않도록 범위를 정확히 지정합니다.
-  sdk: '>=3.0.0 <4.0.0' 
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -13,7 +12,8 @@ dependencies:
   fl_chart: ^0.66.0
   permission_handler: ^11.0.0
   shared_preferences: ^2.2.0
-  flutter_native_splash: ^2.4.0
+  # 충돌을 일으켰던 스플래시 버전을 안정적인 버전으로 고정합니다.
+  flutter_native_splash: 2.3.11 
 
 dev_dependencies:
   flutter_test:
