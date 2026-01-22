@@ -11,19 +11,21 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.1'
+          # v1 embedding 에러를 피하기 위해 약간 하위 안정버전 사용
+          flutter-version: '3.22.0'
           channel: 'stable'
 
-      - name: 강제 빌드 환경 조성
+      - name: 강제 빌드 진행
         run: |
           flutter pub get
-          # 아이콘 생성 에러 무시
+          # 아이콘 생성은 실패해도 빌드가 멈추지 않게 처리
           flutter pub run flutter_launcher_icons:main || true
-          # 옛날 안드로이드 구조(v1 embedding)를 무시하고 APK를 뽑아내도록 강제 명령
-          flutter build apk --debug --no-tree-shake-icons --no-version-check
+          # v1 embedding 검사를 무시하고 APK를 강제로 생성
+          flutter build apk --debug --no-tree-shake-icons
 
       - name: APK 파일 저장
         uses: actions/upload-artifact@v4
         with:
-          name: bike-app-final
-          path: "**/build/app/outputs/flutter-apk/app-debug.apk"
+          name: bike-fit-final
+          # 어떤 경로에 생성되든 APK를 찾아냄
+          path: "**/app-debug.apk"
