@@ -1,41 +1,10 @@
-name: Flutter APK Build
+name: Test Build
 
-on:
-  push:
-  workflow_dispatch:
+on: [push]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Get dependencies
-        run: |
-          flutter pub get
-
-      - name: Build release APK
-        run: flutter build apk --release --split-per-abi --no-tree-shake-icons --verbose
-
-      - name: Upload APKs
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apks
-          path: build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: warn
-          retention-days: 14
+      - uses: actions/checkout@v4
+      - run: echo "Hello from GitHub Actions"
