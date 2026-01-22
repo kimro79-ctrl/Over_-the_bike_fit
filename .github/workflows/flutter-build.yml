@@ -1,4 +1,4 @@
-name: Flutter Build
+name: Flutter Build Final
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -18,20 +18,22 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: 프로젝트 구조 강제 현대화
+      - name: 안드로이드 설정 강제 최신화
         run: |
-          # 1. 예전 구조를 최신 구조(V2)로 서버에서 직접 재생성합니다.
+          # 1. 기존 안드로이드 폴더의 낡은 설정들을 최신(V2)으로 덮어씁니다.
           flutter create . --platforms android --overwrite
           
-          # 2. 의존성 해결 및 아이콘 생성 (에러 무시)
+          # 2. 의존성 해결
           flutter pub get
+          
+          # 3. 아이콘 생성 (에러 무시)
           flutter pub run flutter_launcher_icons:main || true
           
-          # 3. 강제 빌드
+          # 4. 강제 빌드
           flutter build apk --debug --no-tree-shake-icons --no-version-check
 
-      - name: APK 파일 추출
+      - name: APK 추출
         uses: actions/upload-artifact@v4
         with:
-          name: bike-app-success
+          name: bike-app-final
           path: "**/build/app/outputs/flutter-apk/app-debug.apk"
