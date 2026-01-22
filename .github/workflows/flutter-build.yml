@@ -17,11 +17,11 @@ jobs:
 
       - name: 안드로이드 환경 및 리소스 빌드
         run: |
-          # 1. 패키지명 일치를 위해 안드로이드 재구축
+          # 1. 안드로이드 폴더 초기화
           rm -rf android
           flutter create . --platforms android --org com.overthebike --project-name over_the_bike_fit
           
-          # 2. 블루투스/위치 권한 강제 주입 (AndroidManifest.xml)
+          # 2. 블루투스/위치 권한 주입
           sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' android/app/src/main/AndroidManifest.xml
           
           flutter pub get
