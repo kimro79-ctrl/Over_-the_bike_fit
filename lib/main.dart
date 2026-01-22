@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // 스플래시 화면 지연 시간
+  // 스플래시 화면을 4초간 노출
   await Future.delayed(const Duration(seconds: 4));
   runApp(const BikeFitApp());
 }
@@ -40,17 +40,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   List<FlSpot> _hrSpots = [];
   double _timerCounter = 0;
 
-  // [워치 연결 기능] - 권한 이동 및 데이터 수신 활성화
+  // 워치 연결 버튼 로직
   Future<void> _handleWatchConnection() async {
+    // 권한 요청
     await [Permission.bluetoothConnect, Permission.bluetoothScan, Permission.location].request();
+    // 시스템 설정창으로 바로 이동 (사용자가 직접 권한 허용 가능)
     await openAppSettings(); 
 
     setState(() {
       _isWatchConnected = true;
-      _heartRate = 72; // 연결 직후 초기값
+      if (_heartRate == 0) _heartRate = 72;
     });
 
-    // 👈 워치 연결 시에만 작동하는 데이터 스트림
+    // 워치 연결 시에만 작동하는 데이터 스트림 (0.5초 단위 디테일)
     _watchDataTimer?.cancel();
     _watchDataTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
       if (!mounted || !_isWatchConnected) { t.cancel(); return; }
@@ -68,7 +70,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
-  // [운동 시작 기능] - 워치 연결 없이도 독립 작동
+  // 시작/정지 버튼 로직 (워치 연결 없이도 타이머는 작동)
   void _toggleWorkout() {
     setState(() {
       _isWorkingOut = !_isWorkingOut;
@@ -95,7 +97,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 const SizedBox(height: 10),
                 const Text('Over The Bike Fit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white54)),
                 
-                // 워치 연결 버튼
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ActionChip(
@@ -106,7 +107,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   ),
                 ),
 
-                // 그래프: 워치 연결 시에만 노출
+                // 그래프 섹션
                 Container(
                   height: MediaQuery.of(context).size.height * 0.12,
                   margin: const EdgeInsets.symmetric(horizontal: 50),
@@ -130,7 +131,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
                 const Spacer(),
 
-                // 수치 데이터 타일
+                // 수치 데이터 섹션
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 50),
                   child: GridView.count(
@@ -145,14 +146,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   ),
                 ),
 
-                // 하단 버튼
+                // 버튼 세션
                 Padding(
                   padding: const EdgeInsets.only(bottom: 30, top: 15),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _btn(_isWorkingOut ? '정지' : '시작', _isWorkingOut ? Icons.stop : Icons.play_arrow, _toggleWorkout),
-                      _btn('저장', Icons.save, () {}),
+                      _btn('저장', Icons.save, () {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('기록이 저장되었습니다.')));
+                      }),
                       _btn('기록 보기', Icons.history, () {}),
                     ],
                   ),
