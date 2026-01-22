@@ -1,4 +1,4 @@
-name: Final Success Build
+name: Perfect Final Build
 on: [push, workflow_dispatch]
 
 jobs:
@@ -15,23 +15,25 @@ jobs:
         uses: subosito/flutter-action@v2
         with: { flutter-version: '3.27.1', channel: 'stable' }
 
-      - name: 안드로이드 환경 설정
+      - name: 안드로이드 환경 및 리소스 빌드
         run: |
-          # 1. 안드로이드 폴더 초기화
+          # 1. 패키지명 일치를 위해 안드로이드 재구축
           rm -rf android
-          flutter create . --platforms android --org com.overthebike.fit
+          flutter create . --platforms android --org com.overthebike --project-name over_the_bike_fit
           
-          # 2. 권한 주입 (가장 안전한 sed 방식 사용)
+          # 2. 블루투스/위치 권한 강제 주입 (AndroidManifest.xml)
           sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' android/app/src/main/AndroidManifest.xml
           
-          # 3. 리소스 생성 및 빌드
           flutter pub get
+          # 3. 아이콘 및 스플래시 생성
           flutter pub run flutter_launcher_icons:main || true
           flutter pub run flutter_native_splash:create || true
+          
+          # 4. APK 빌드
           flutter build apk --debug --no-tree-shake-icons
 
       - name: APK 추출
         uses: actions/upload-artifact@v4
         with:
-          name: over-the-bike-final
+          name: over-the-bike-perfect-final
           path: "build/app/outputs/flutter-apk/app-debug.apk"
