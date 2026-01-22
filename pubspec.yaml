@@ -2,7 +2,6 @@ name: over_the_bike_fit
 description: Bike Fit App Final
 version: 1.0.0+1
 environment:
-  # 3.3.4 버전도 통과할 수 있도록 하한선을 살짝 낮춤
   sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
@@ -10,7 +9,6 @@ dependencies:
     sdk: flutter
   flutter_blue_plus: ^1.31.1
   fl_chart: ^0.66.0
-  # 버전 충돌을 피하기 위해 최신보다 약간 안정적인 버전 권장
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.2
   flutter_native_splash: ^2.4.1
@@ -29,7 +27,7 @@ flutter:
 
 flutter_launcher_icons:
   android: "ic_launcher"
-  ios: true
+  ios: false  # iOS 설정을 꺼서 오류를 방지합니다.
   image_path: "assets/icon/app_icon.png"
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
