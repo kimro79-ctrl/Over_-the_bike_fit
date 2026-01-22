@@ -1,26 +1,63 @@
-name: Flutter Build V1 Force
+name: Final Force Build
 on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Java 11 Setup
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '11' # 옛날 버전에는 Java 11이 더 잘 맞습니다.
-
-      - name: Flutter Setup (Old Version)
-        uses: subosito/flutter-action@v2
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
         with:
-          # V1을 공식적으로 지원했던 마지막 세대 버전을 사용합니다.
-          flutter-version: '2.10.5' 
+          flutter-version: '3.27.1'
           channel: 'stable'
 
-      - name: Build APK
+      - name: V2 구조 강제 주입
+        run: |
+          # 1. 낡은 안드로이드 폴더를 서버에서 지웁니다.
+          rm -rf android
+          # 2. 최신 V2 구조로 재생성합니다.
+          flutter create . --platforms android --org com.example
+          
+          # 3. 사용자님이 주신 XML 내용을 서버가 직접 덮어쓰게 합니다.
+          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+              <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+              <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+              <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+              <application
+                  android:label="Over the Bike Fit"
+                  android:name="\${applicationName}"
+                  android:icon="@mipmap/ic_launcher">
+                  <meta-data android:name="flutterEmbedding" android:value="2" />
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+      - name: 최종 빌드
         run: |
           flutter pub get
-          # 모든 검사를 무시하고 옛날 방식으로 APK 추출
           flutter build apk --debug --no-tree-shake-icons
+
+      - name: APK 추출
+        uses: actions/upload-artifact@v4
+        with:
+          name: bike-app-perfect
+          path: "build/app/outputs/flutter-apk/app-debug.apk"
