@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  // 최신 엔진 연결을 위한 필수 코드
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BikeFitApp());
+  runApp(BikeFitApp()); // const 제거
 }
 
 class BikeFitApp extends StatelessWidget {
-  const BikeFitApp({super.key}); // 최신 super 파라미터 문법 사용
+  // 에러 원인이었던 super.key 대신 전통적인 방식으로 수정
+  const BikeFitApp({Key? key}) : super(key: key); 
 
   @override
   Widget build(BuildContext context) {
@@ -27,25 +27,23 @@ class BikeFitApp extends StatelessWidget {
 }
 
 class MainScreen extends StatelessWidget {
-  const MainScreen({super.key});
+  // 여기도 마찬가지로 수정
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 배경색을 지정하여 이미지 로딩 전에도 에러가 보이지 않게 처리
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. 배경 이미지 (이미지가 없어도 빌드는 되도록 에러 처리 포함)
           Positioned.fill(
             child: Image.asset(
               'assets/background.png',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => 
-                Container(color: Colors.black), // 이미지 없을 때 검정 배경
+                Container(color: Colors.black),
             ),
           ),
-          // 2. 콘텐츠 레이어
           SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -62,7 +60,6 @@ class MainScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // 3. 하단 메뉴 버튼 (Row로 배치하여 겹침 방지)
                 Container(
                   padding: const EdgeInsets.only(bottom: 50),
                   child: Row(
@@ -88,7 +85,7 @@ class MainScreen extends StatelessWidget {
       children: [
         IconButton(
           icon: Icon(icon, size: 40, color: Colors.blue),
-          onPressed: () {}, // 버튼 동작은 빌드 성공 후 추가
+          onPressed: () {},
         ),
         Text(label, style: const TextStyle(color: Colors.white)),
       ],
