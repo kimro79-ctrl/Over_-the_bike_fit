@@ -1,39 +1,36 @@
-
 name: over_the_bike_fit
-description: Bike Fit Perfect Final
-version: 1.0.0+1
+description: "A professional cycling heart rate monitor app for Watch users."
 publish_to: 'none'
 
+version: 1.0.0+1
+
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  fl_chart: ^0.66.0
+
+  # 1. 블루투스 통신 (실제 워치 연동 핵심)
+  flutter_blue_plus: ^1.31.0
+  
+  # 2. 권한 요청 (블루투스, 위치, 근처 기기)
   permission_handler: ^11.3.1
-  flutter_native_splash: ^2.4.0
+  
+  # 3. 실시간 심박수 그래프
+  fl_chart: ^0.66.0
+  
+  # 아이콘 디자인용 (기본 포함)
+  cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: "^0.13.1"
-
-# ⚠️ 주의: 아래 설정들은 반드시 맨 왼쪽(들여쓰기 없음)에 붙여넣어야 합니다.
-flutter_launcher_icons:
-  android: true
-  ios: false # iOS 폴더가 없으므로 false로 설정해야 빌드 에러가 안 납니다.
-  image_path: "assets/icon/app_icon.png"
-
-flutter_native_splash:
-  color: "#000000"
-  image: "assets/splash/splash_screen.png"
-  android_12:
-    image: "assets/splash/splash_screen.png"
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+
+  # 4. 배경 이미지 등록 (이 부분을 정확히 확인하세요!)
   assets:
     - assets/background.png
-    - assets/splash/splash_screen.png
-    - assets/icon/app_icon.png
