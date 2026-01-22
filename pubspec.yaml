@@ -2,7 +2,7 @@ name: over_the_bike_fit
 description: Bike Fit App Final
 version: 1.0.0+1
 environment:
-  # Flutter 3.22.0과 호환되도록 조정
+  # 빌드 서버 버전과 일치시킴
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
@@ -10,9 +10,10 @@ dependencies:
     sdk: flutter
   flutter_blue_plus: ^1.31.1
   fl_chart: ^0.66.0
-  permission_handler: ^11.3.1
-  shared_preferences: ^2.3.2
-  flutter_native_splash: ^2.4.1
+  # 충돌 방지를 위해 하위 버전 사용
+  permission_handler: ^11.0.0
+  shared_preferences: ^2.2.0
+  flutter_native_splash: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -28,6 +29,7 @@ flutter:
 
 flutter_launcher_icons:
   android: true
+  ios: false
   image_path: "assets/icon/app_icon.png"
 
 flutter_native_splash:
