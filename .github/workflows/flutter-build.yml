@@ -7,40 +7,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 코드 가져오기
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Java 17 설치
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Flutter 설치
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: pub 캐시
+      - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
           key: \( {{ runner.os }}-pub- \){{ hashFiles('**/pubspec.lock') }}
 
-      - name: 프로젝트 정리 및 패키지 설치
+      - name: Clean and get packages
         run: |
           flutter clean
           flutter pub get
 
-      - name: APK 빌드 (릴리스 + ABI 분할)
+      - name: Build release APKs
         run: flutter build apk --release --split-per-abi --no-tree-shake-icons --verbose
 
-      - name: 빌드 결과 APK 업로드
+      - name: Upload APKs
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: bike-fit-release-apks
+          name: bike-fit-apks
           path: |
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
