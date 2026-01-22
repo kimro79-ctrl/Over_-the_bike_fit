@@ -1,4 +1,4 @@
-name: Final Polish Build
+name: Final Master Build
 on: [push, workflow_dispatch]
 
 jobs:
@@ -9,35 +9,31 @@ jobs:
 
       - name: Java Setup
         uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+        with: { distribution: 'temurin', java-version: '17' }
 
       - name: Flutter Setup
         uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.27.1'
-          channel: 'stable'
+        with: { flutter-version: '3.27.1', channel: 'stable' }
 
-      - name: 안드로이드 설정 및 권한 복구
+      - name: 안드로이드 현대화 및 권한 주입
         run: |
-          # 기본 안드로이드 구조가 없으면 생성하되 기존 리소스는 유지
-          if [ ! -d "android" ]; then
-            flutter create . --platforms android --org com.example
-          fi
+          # 1. 기존 안드로이드 프로젝트 구조 삭제 후 최신 버전으로 재생성 (v1 임베딩 방지)
+          rm -rf android
+          flutter create . --platforms android --org com.example
           
-          # AndroidManifest.xml에 근처 기기(블루투스) 권한 주입
+          # 2. 블루투스 권한 다시 주입
           sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' android/app/src/main/AndroidManifest.xml
           
+          # 3. 아이콘 및 스플래시 생성 (설정 파일 기반)
           flutter pub get
-          # 아이콘과 스플래시 화면 재생성
           flutter pub run flutter_launcher_icons:main || true
           flutter pub run flutter_native_splash:create || true
           
+          # 4. APK 빌드
           flutter build apk --debug --no-tree-shake-icons
 
       - name: APK 추출
         uses: actions/upload-artifact@v4
         with:
-          name: over-the-bike-final
+          name: over-the-bike-perfect
           path: "build/app/outputs/flutter-apk/app-debug.apk"
