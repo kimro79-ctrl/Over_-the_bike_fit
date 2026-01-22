@@ -28,7 +28,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   image_path: "assets/icon/app_icon.png"
-  # 복잡한 설정 제거
 
 flutter_native_splash:
   color: "#000000"
