@@ -13,6 +13,7 @@ void main() {
   runApp(const BikeFitApp());
 }
 
+// 1. 운동 기록 저장용 데이터 모델
 class WorkoutRecord {
   final String date;
   final int avgHR;
@@ -82,7 +83,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           _hrSpots.add(FlSpot(_timeCounter, _heartRate.toDouble()));
           if (_hrSpots.length > 100) _hrSpots.removeAt(0);
           _avgHeartRate = (_hrSpots.map((e) => e.y).reduce((a, b) => a + b) / _hrSpots.length).toInt();
-          // 심박수 100부터 칼로리 계산
           if (_heartRate >= 100) {
             _calories += (_heartRate * 0.012 * (1/60));
           }
@@ -91,7 +91,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
-  // 🔍 워치 검색창 (화면 40% 크기로 작게 조절)
   Future<void> _connectWatch() async {
     await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
     FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
@@ -160,14 +159,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   void _saveRecord() async {
     if (_duration == Duration.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("운동 기록이 없습니다!"), duration: Duration(seconds: 1)));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("운동 기록이 없습니다!")));
       return;
     }
     String date = DateFormat('M/d(E)', 'ko_KR').format(DateTime.now());
     setState(() { _records.insert(0, WorkoutRecord(date, _avgHeartRate, _calories, _duration)); });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('workout_records', jsonEncode(_records.map((r) => {'date': r.date, 'avgHR': r.avgHR, 'calories': r.calories, 'durationSeconds': r.duration.inSeconds}).toList()));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("기록이 저장되었습니다!"), duration: Duration(seconds: 1)));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("기록이 저장되었습니다!")));
   }
 
   @override
@@ -185,11 +184,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 const SizedBox(height: 10),
                 _smallRoundedBtn(_isWatchConnected ? "워치 연결됨" : "워치 연결하기", _isWatchConnected ? Colors.cyanAccent : Colors.white, _connectWatch),
                 
-                // 그래프 영역
                 Container(
-                  height: 45,
-                  width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 60, vertical: 15),
+                  height: 45, width: double.infinity, margin: const EdgeInsets.symmetric(horizontal: 60, vertical: 15),
                   child: _hrSpots.isEmpty 
                     ? const Center(child: Text("심박수 대기...", style: TextStyle(fontSize: 9, color: Colors.white24)))
                     : LineChart(LineChartData(
@@ -200,10 +196,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
                 const Spacer(),
                 
-                // 📊 데이터 배너 (기존의 0.5배만 크게 조절)
+                // 📊 데이터 배너 (기존의 0.5배 확대 사이즈)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 25),
-                  padding: const EdgeInsets.symmetric(vertical: 22), // 30에서 22로 줄여서 적당한 크기 유지
+                  padding: const EdgeInsets.symmetric(vertical: 22), 
                   decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white24, width: 1.2)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -218,7 +214,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
                 const Spacer(),
 
-                // 🔘 하단 버튼 (터치 반응 최적화)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 40),
                   child: Row(
@@ -231,7 +226,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       _rectBtn(Icons.save, "저장", _saveRecord),
                       const SizedBox(width: 15),
                       _rectBtn(Icons.bar_chart, "기록보기", () {
-                        Navigator.push(context, MaterialPageRoute(builder: (c) => HistoryScreen(records: _records, hrSpots: _hrSpots)));
+                        Navigator.push(context, MaterialPageRoute(builder: (c) => HistoryScreen(records: _records)));
                       }),
                     ],
                   ),
@@ -245,27 +240,58 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   Widget _smallRoundedBtn(String t, Color c, VoidCallback tap) => GestureDetector(onTap: tap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: c.withOpacity(0.5))), child: Text(t, style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.bold))));
-  
-  // 적당히 큰 스탯 위젯 (글자 크기 21로 조정)
-  Widget _modestStat(String l, String v, Color c) => Column(children: [
-    Text(l, style: const TextStyle(fontSize: 10, color: Colors.white70)),
-    const SizedBox(height: 4),
-    Text(v, style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold, color: c)) 
-  ]);
-
-  Widget _rectBtn(IconData i, String l, VoidCallback t) => Column(children: [
-    GestureDetector(
-      onTap: t,
-      behavior: HitTestBehavior.opaque, 
-      child: Container(
-        width: 60, height: 60, 
-        decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white24)),
-        child: Icon(i, color: Colors.white, size: 24)
-      )
-    ),
-    const SizedBox(height: 8),
-    Text(l, style: const TextStyle(fontSize: 10, color: Colors.white))
-  ]);
+  Widget _modestStat(String l, String v, Color c) => Column(children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.white70)), const SizedBox(height: 4), Text(v, style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold, color: c))]);
+  Widget _rectBtn(IconData i, String l, VoidCallback t) => Column(children: [GestureDetector(onTap: t, behavior: HitTestBehavior.opaque, child: Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white24)), child: Icon(i, color: Colors.white, size: 24))), const SizedBox(height: 8), Text(l, style: const TextStyle(fontSize: 10, color: Colors.white))]);
 }
 
-// (HistoryScreen 클래스는 동일)
+// 2. 기록 보기 화면 클래스 (이 부분이 빠져서 오류가 났었습니다)
+class HistoryScreen extends StatefulWidget {
+  final List<WorkoutRecord> records;
+  const HistoryScreen({Key? key, required this.records}) : super(key: key);
+  @override
+  _HistoryScreenState createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  void _deleteRecord(int index) async {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text("기록 삭제"),
+        content: const Text("이 운동 기록을 삭제하시겠습니까?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소")),
+          TextButton(onPressed: () async {
+            setState(() { widget.records.removeAt(index); });
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('workout_records', jsonEncode(widget.records.map((r) => {'date': r.date, 'avgHR': r.avgHR, 'calories': r.calories, 'durationSeconds': r.duration.inSeconds}).toList()));
+            Navigator.pop(context);
+          }, child: const Text("삭제", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(title: const Text("운동 리포트"), backgroundColor: Colors.transparent),
+      body: widget.records.isEmpty
+          ? const Center(child: Text("저장된 기록이 없습니다."))
+          : ListView.builder(
+              itemCount: widget.records.length,
+              itemBuilder: (c, i) {
+                final r = widget.records[i];
+                return ListTile(
+                  onLongPress: () => _deleteRecord(i),
+                  leading: const Icon(Icons.directions_bike, color: Colors.cyanAccent),
+                  title: Text("${r.date} 운동"),
+                  subtitle: Text("${r.duration.inMinutes}분 | 평균 ${r.avgHR}BPM"),
+                  trailing: Text("${r.calories.toStringAsFixed(1)}kcal", style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+                );
+              },
+            ),
+    );
+  }
+}
