@@ -1,5 +1,5 @@
 name: bike_fit_app
-description: Real-time Heart Rate Bike Fit App
+description: 실시간 심박수 기반 바이크 핏 애플리케이션
 version: 1.0.0+1
 
 environment:
@@ -19,13 +19,13 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.0
 
-# 아이콘 실제 경로 반영
+# 1. 앱 아이콘 설정 (아이콘 폴더 경로 명시)
 flutter_icons:
   android: true
   ios: true
   image_path: "assets/icon/app_icon.png"
 
-# 스플래시 실제 경로 반영
+# 2. 스플래시 화면 설정 (스플래시 폴더 경로 명시)
 flutter_native_splash:
   color: "#000000"
   image: "assets/splash/splash_screen.png"
@@ -34,6 +34,8 @@ flutter_native_splash:
 
 flutter:
   uses-material-design: true
+
+  # 3. 에셋 경로 설정 (폴더 구조와 파일명 일치)
   assets:
     - assets/background.png
     - assets/icon/app_icon.png
