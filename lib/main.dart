@@ -84,17 +84,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _decodeHR(List<int> data) {
     if (data.isEmpty) return;
     int hr = (data[0] & 0x01) == 0 ? data[1] : (data[2] << 8) | data[1];
-    
     if (mounted && hr > 0) {
       setState(() {
-        _heartRate = hr; // 화면에는 실제 워치 심박수 표시
+        _heartRate = hr; 
         if (_isWorkingOut) {
           _timeCounter += 1;
           _hrSpots.add(FlSpot(_timeCounter, _heartRate.toDouble()));
           if (_hrSpots.length > 100) _hrSpots.removeAt(0);
           _avgHeartRate = (_hrSpots.map((e) => e.y).reduce((a, b) => a + b) / _hrSpots.length).toInt();
-          
-          // 💡 칼로리 계산만 심박수 95 기준으로 고정
           _calories += (95 * 0.012 * (1/60)); 
         }
       });
@@ -110,11 +107,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       _showSnack("먼저 정지 버튼을 눌러주세요.");
       return;
     }
-
     String dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    setState(() {
-      _records.insert(0, WorkoutRecord(DateTime.now().toString(), dateStr, _avgHeartRate, _calories, _duration));
-    });
+    setState(() { _records.insert(0, WorkoutRecord(DateTime.now().toString(), dateStr, _avgHeartRate, _calories, _duration)); });
     await _saveToPrefs();
     _showSnack("기록이 저장되었습니다!");
   }
@@ -128,13 +122,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     setState(() {
       _isWorkingOut = !_isWorkingOut;
       if (_isWorkingOut) {
-        _workoutTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-          setState(() {
-            _duration += const Duration(seconds: 1);
-            // 워치 연결 유무와 상관없이 운동 중이면 칼로리를 95 기준으로 누적
-            _calories += (95 * 0.012 * (1/60));
-          });
-        });
+        _workoutTimer = Timer.periodic(const Duration(seconds: 1), (t) => setState(() {
+          _duration += const Duration(seconds: 1);
+          _calories += (95 * 0.012 * (1/60));
+        }));
       } else {
         _workoutTimer?.cancel();
       }
@@ -178,40 +169,46 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           Positioned.fill(child: Opacity(opacity: 0.8, child: Image.asset('assets/background.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(color: Colors.grey[900])))),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
                   const Text('OVER THE BIKE FIT', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _smallRoundedBtn(_isWatchConnected ? "워치 연결됨" : "워치 연결하기", _isWatchConnected ? Colors.cyanAccent : Colors.white, _connectWatch),
                   
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
                   SizedBox(
-                    height: 50, width: double.infinity,
-                    child: _hrSpots.isEmpty ? const Center(child: Text("데이터 대기 중...", style: TextStyle(fontSize: 9, color: Colors.white24)))
-                      : LineChart(LineChartData(gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false),
-                          lineBarsData: [LineChartBarData(spots: _hrSpots, isCurved: true, color: Colors.cyanAccent, barWidth: 2, dotData: const FlDotData(show: false))])),
+                    height: 40, width: double.infinity,
+                    child: LineChart(LineChartData(gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false),
+                        lineBarsData: [LineChartBarData(spots: _hrSpots.isEmpty ? [const FlSpot(0, 0)] : _hrSpots, isCurved: true, color: Colors.cyanAccent, barWidth: 2, dotData: const FlDotData(show: false))])),
                   ),
 
                   const Spacer(),
                   
+                  // 💡 데이터 배너: 원래 크기 대비 1.5배(0.5배 확대) 수준으로 최적화
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 22),
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white24, width: 1.2)),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 40), // 1.5배 커진 세로 패딩
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.8), 
+                      borderRadius: BorderRadius.circular(25), 
+                      border: Border.all(color: Colors.white24, width: 1.5)
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _modestStat("심박수", "$_heartRate", Colors.cyanAccent),
-                        _modestStat("평균심박", "$_avgHeartRate", Colors.redAccent),
-                        _modestStat("칼로리", _calories.toStringAsFixed(1), Colors.orangeAccent),
-                        _modestStat("운동시간", "${_duration.inMinutes}:${(_duration.inSeconds % 60).toString().padLeft(2, '0')}", Colors.blueAccent),
+                        _optimizedStat("심박수", "$_heartRate", Colors.cyanAccent),
+                        _optimizedStat("평균", "$_avgHeartRate", Colors.redAccent),
+                        _optimizedStat("칼로리", _calories.toStringAsFixed(1), Colors.orangeAccent),
+                        _optimizedStat("시간", "${_duration.inMinutes}:${(_duration.inSeconds % 60).toString().padLeft(2, '0')}", Colors.blueAccent),
                       ],
                     ),
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 30),
 
+                  // 하단 버튼 영역
                   Padding(
                     padding: const EdgeInsets.only(bottom: 30),
                     child: Row(
@@ -223,7 +220,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         const SizedBox(width: 15),
                         _rectBtn(Icons.save, "저장", _saveRecord),
                         const SizedBox(width: 15),
-                        _rectBtn(Icons.bar_chart, "기록보기", () async {
+                        _rectBtn(Icons.bar_chart, "기록", () async {
                           await Navigator.push(context, MaterialPageRoute(builder: (c) => HistoryScreen(records: _records, onSync: _saveToPrefs)));
                           setState(() {});
                         }),
@@ -240,7 +237,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   Widget _smallRoundedBtn(String t, Color c, VoidCallback tap) => GestureDetector(onTap: tap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: c.withOpacity(0.5))), child: Text(t, style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.bold))));
-  Widget _modestStat(String l, String v, Color c) => Column(children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.white70)), const SizedBox(height: 4), Text(v, style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold, color: c))]);
+  
+  // 💡 1.5배 최적화 사이즈 (기존 32 -> 38)
+  Widget _optimizedStat(String l, String v, Color c) => Column(children: [Text(l, style: const TextStyle(fontSize: 13, color: Colors.white70)), const SizedBox(height: 6), Text(v, style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: c))]);
+  
   Widget _rectBtn(IconData i, String l, VoidCallback t) => Column(children: [GestureDetector(onTap: t, behavior: HitTestBehavior.opaque, child: Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white24)), child: Icon(i, color: Colors.white, size: 24))), const SizedBox(height: 8), Text(l, style: const TextStyle(fontSize: 10, color: Colors.white))]);
 }
 
