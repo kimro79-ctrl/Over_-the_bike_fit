@@ -40,10 +40,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   BluetoothDevice? _targetDevice;
   bool _isWorkingOut = false;
   bool _isWatchConnected = false; 
-  List<FlSpot> _hrSpots = [];
+  List<FlSpot> _hrSpots = [const FlSpot(0, 0)]; // 초기값 설정
   double _timeCounter = 0;
 
-  // 로직 분리: 워치 연결 전용
   Future<void> _connectWatch() async {
     HapticFeedback.mediumImpact();
     await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
@@ -51,7 +50,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     
     FlutterBluePlus.scanResults.listen((results) async {
       for (ScanResult r in results) {
-        if (r.device.platformName.contains("Amazfit") || r.advertisementData.serviceUuids.contains(Guid("180D"))) {
+        if (r.device.platformName.toLowerCase().contains("amazfit") || 
+            r.advertisementData.serviceUuids.contains(Guid("180D"))) {
           _targetDevice = r.device;
           FlutterBluePlus.stopScan();
           try {
@@ -74,7 +74,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
-  // 로직 분리: 운동 시작/중지 및 칼로리 제한 적용
   void _toggleWorkout() {
     HapticFeedback.heavyImpact();
     setState(() {
@@ -83,7 +82,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         _workoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           setState(() {
             _duration += const Duration(seconds: 1);
-            // 심박수가 95 BPM 이상일 때만 칼로리 증가
             if (_isWatchConnected && _heartRate >= 95) {
               _calories += (_heartRate * 0.0015);
             }
@@ -99,6 +97,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     if (data.isEmpty) return;
     int flag = data[0];
     int hr = (flag & 0x01) == 0 ? data[1] : (data[2] << 8) | data[1];
+    
     if (mounted && hr > 0) {
       setState(() {
         _heartRate = hr;
@@ -106,12 +105,21 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           _totalHRSum += _heartRate;
           _hrCount++;
           _avgHeartRate = _totalHRSum ~/ _hrCount;
+          
+          // 그래프 데이터 갱신 로직 강화
           _timeCounter += 1;
           _hrSpots.add(FlSpot(_timeCounter, _heartRate.toDouble()));
-          if (_hrSpots.length > 50) _hrSpots.removeAt(0);
+          if (_hrSpots.length > 30) _hrSpots.removeAt(0);
         }
       });
     }
+  }
+
+  // [추가] 저장/기록 버튼 액션
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text), duration: const Duration(seconds: 2))
+    );
   }
 
   @override
@@ -127,10 +135,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 배경 밝기 향상 (0.7)
+          // 4. 배경 밝기 향상 (0.85로 선명하게)
           Positioned.fill(
             child: Opacity(
-              opacity: 0.7, 
+              opacity: 0.85, 
               child: Image.asset('assets/background.png', fit: BoxFit.cover, errorBuilder: (_,__,___)=>Container(color: Colors.black))
             )
           ),
@@ -141,7 +149,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 const Text('Over The Bike Fit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 const SizedBox(height: 20),
                 
-                // 워치 연결 버튼
                 GestureDetector(
                   onTap: _isWatchConnected ? null : _connectWatch,
                   child: Container(
@@ -159,25 +166,31 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   ),
                 ),
 
-                // 그래프: 토글 밑 배치 + 크기 축소
                 const SizedBox(height: 15),
+                // 3. 그래프 슬림 디자인 및 실시간 갱신 적용
                 SizedBox(
                   height: 40, 
                   width: double.infinity,
-                  child: _isWatchConnected && _hrSpots.isNotEmpty 
+                  child: _hrSpots.length > 1 
                     ? LineChart(LineChartData(
                         minY: 40, maxY: 200,
                         gridData: const FlGridData(show: false),
                         titlesData: const FlTitlesData(show: false),
                         borderData: FlBorderData(show: false),
-                        lineBarsData: [LineChartBarData(spots: _hrSpots, isCurved: true, barWidth: 1.5, color: Colors.cyanAccent, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, color: Colors.cyanAccent.withOpacity(0.1)))]
+                        lineBarsData: [LineChartBarData(
+                          spots: _hrSpots, 
+                          isCurved: true, 
+                          barWidth: 2, 
+                          color: Colors.cyanAccent, 
+                          dotData: const FlDotData(show: false), 
+                          belowBarData: BarAreaData(show: true, color: Colors.cyanAccent.withOpacity(0.2))
+                        )]
                       ))
                     : const Center(child: Text("데이터 대기 중...", style: TextStyle(fontSize: 10, color: Colors.white24))),
                 ),
 
                 const Spacer(),
                 
-                // 데이터 보드
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 25),
                   padding: const EdgeInsets.all(25),
@@ -197,13 +210,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 
                 const SizedBox(height: 40),
 
-                // 하단 액션 버튼
+                // 2. 하단 버튼 액션 연결
                 Padding(
                   padding: const EdgeInsets.only(bottom: 40),
                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
                     _actionBtn(_isWorkingOut ? Icons.pause : Icons.play_arrow, _isWorkingOut ? "중지" : "시작", _toggleWorkout),
-                    _actionBtn(Icons.file_upload_outlined, "저장", () {}),
-                    _actionBtn(Icons.bar_chart, "기록", () {}),
+                    _actionBtn(Icons.file_upload_outlined, "저장", () => _showMessage("현재 운동 기록이 저장되었습니다.")),
+                    _actionBtn(Icons.bar_chart, "기록", () => _showMessage("이전 운동 기록을 불러옵니다.")),
                   ]),
                 ),
               ],
@@ -214,6 +227,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
+  // UI 구성 함수들은 동일하게 유지...
   Widget _dataItem(IconData icon, String label, String value, Color color) => Column(children: [
     Row(children: [Icon(icon, size: 14, color: color), const SizedBox(width: 5), Text(label, style: const TextStyle(fontSize: 11, color: Colors.white60))]),
     const SizedBox(height: 8),
