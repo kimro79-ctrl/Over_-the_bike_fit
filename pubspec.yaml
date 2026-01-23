@@ -25,7 +25,7 @@ dependencies:
   
   # ✅ 운동 기록 로컬 저장
   shared_preferences: ^2.2.2
-
+  table_calendar: ^3.0.9
 dev_dependencies:
   flutter_test:
     sdk: flutter
