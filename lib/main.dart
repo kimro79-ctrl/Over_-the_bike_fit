@@ -12,7 +12,6 @@ import 'package:table_calendar/table_calendar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // 세로 모드 고정
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await initializeDateFormatting('ko_KR', null);
   runApp(const BikeFitApp());
@@ -53,10 +52,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Timer? _workoutTimer;
   bool _isWorkingOut = false;
   bool _isWatchConnected = false;
+  bool _isScanning = false;
   List<FlSpot> _hrSpots = [];
   double _timeCounter = 0;
   List<WorkoutRecord> _records = [];
   String? _lastDeviceId;
+  BluetoothDevice? _targetDevice;
 
   @override
   void initState() {
@@ -65,10 +66,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _attemptAutoConnect();
   }
 
+  // 자동 연결 시도
   Future<void> _attemptAutoConnect() async {
     final prefs = await SharedPreferences.getInstance();
     _lastDeviceId = prefs.getString('last_watch_id');
-    if (_lastDeviceId != null && !_isWatchConnected) {
+    if (_lastDeviceId != null) {
       BluetoothDevice device = BluetoothDevice.fromId(_lastDeviceId!);
       try {
         await device.connect(autoConnect: true).timeout(const Duration(seconds: 5));
@@ -77,6 +79,86 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
+  // 💡 워치 스캔 및 연결 시작
+  void _startScan() async {
+    // 권한 요청
+    if (await Permission.bluetoothScan.request().isGranted &&
+        await Permission.bluetoothConnect.request().isGranted &&
+        await Permission.location.request().isGranted) {
+      
+      setState(() => _isScanning = true);
+      
+      // 스캔 시작 (심박수 서비스 UUID: 180D)
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
+
+      var subscription = FlutterBluePlus.onScanResults.listen((results) {
+        for (ScanResult r in results) {
+          // 기기 이름에 Watch가 있거나 심박수 서비스를 광고하는 기기 선택
+          if (r.device.platformName.contains("Watch") || r.advertisementData.serviceUuids.contains(Guid("180D"))) {
+            FlutterBluePlus.stopScan();
+            _connectToDevice(r.device);
+            break;
+          }
+        }
+      });
+
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted) setState(() => _isScanning = false);
+      });
+    }
+  }
+
+  void _connectToDevice(BluetoothDevice device) async {
+    try {
+      await device.connect();
+      _setupDevice(device);
+    } catch (e) {
+      debugPrint("연결 오류: $e");
+    }
+  }
+
+  void _setupDevice(BluetoothDevice device) async {
+    setState(() { 
+      _isWatchConnected = true; 
+      _isScanning = false;
+      _targetDevice = device;
+    });
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_watch_id', device.remoteId.toString());
+
+    List<BluetoothService> services = await device.discoverServices();
+    for (var s in services) {
+      if (s.uuid == Guid("180D")) {
+        for (var c in s.characteristics) {
+          if (c.uuid == Guid("2A37")) {
+            await c.setNotifyValue(true);
+            c.lastValueStream.listen(_decodeHR);
+          }
+        }
+      }
+    }
+  }
+
+  // 심박수 데이터 파싱
+  void _decodeHR(List<int> data) {
+    if (data.isEmpty) return;
+    int hr = (data[0] & 0x01) == 0 ? data[1] : (data[2] << 8) | data[1];
+    if (mounted && hr > 0) {
+      setState(() {
+        _heartRate = hr;
+        if (_isWorkingOut) {
+          _timeCounter += 1;
+          _hrSpots.add(FlSpot(_timeCounter, _heartRate.toDouble()));
+          if (_hrSpots.length > 50) _hrSpots.removeAt(0);
+          _avgHeartRate = (_hrSpots.map((e) => e.y).reduce((a, b) => a + b) / _hrSpots.length).toInt();
+          if (_heartRate >= 95) _calories += (95 * 0.012 * (1/60));
+        }
+      });
+    }
+  }
+
+  // ... (데이터 저장/로드 로직은 이전과 동일)
   Future<void> _loadRecords() async {
     final prefs = await SharedPreferences.getInstance();
     final String? recordsJson = prefs.getString('workout_records');
@@ -96,23 +178,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     await prefs.setString('workout_records', jsonEncode(_records.map((r) => {
       'id': r.id, 'date': r.date, 'avgHR': r.avgHR, 'calories': r.calories, 'durationSeconds': r.duration.inSeconds
     }).toList()));
-  }
-
-  void _decodeHR(List<int> data) {
-    if (data.isEmpty) return;
-    int hr = (data[0] & 0x01) == 0 ? data[1] : (data[2] << 8) | data[1];
-    if (mounted && hr > 0) {
-      setState(() {
-        _heartRate = hr;
-        if (_isWorkingOut) {
-          _timeCounter += 1;
-          _hrSpots.add(FlSpot(_timeCounter, _heartRate.toDouble()));
-          if (_hrSpots.length > 50) _hrSpots.removeAt(0);
-          _avgHeartRate = (_hrSpots.map((e) => e.y).reduce((a, b) => a + b) / _hrSpots.length).toInt();
-          if (_heartRate >= 95) _calories += (95 * 0.012 * (1/60));
-        }
-      });
-    }
   }
 
   void _toggleWorkout() {
@@ -135,41 +200,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     String dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     setState(() { _records.insert(0, WorkoutRecord(DateTime.now().toString(), dateStr, _avgHeartRate, _calories, _duration)); });
     await _saveToPrefs();
-    
-    // 💡 저장 팝업 1초 설정
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("운동 데이터가 저장되었습니다."),
-        backgroundColor: Colors.green[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 1),
-        width: 250,
-      )
-    );
-  }
-
-  void _setupDevice(BluetoothDevice device) async {
-    setState(() { _isWatchConnected = true; });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('last_watch_id', device.remoteId.toString());
-    List<BluetoothService> services = await device.discoverServices();
-    for (var s in services) {
-      if (s.uuid == Guid("180D")) {
-        for (var c in s.characteristics) {
-          if (c.uuid == Guid("2A37")) {
-            await c.setNotifyValue(true);
-            c.lastValueStream.listen(_decodeHR);
-          }
-        }
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text("운동 데이터가 저장되었습니다."), backgroundColor: Colors.green[700], behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1), width: 250));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      resizeToAvoidBottomInset: false, // 스크롤 방지
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Positioned.fill(child: Opacity(opacity: 0.5, child: Image.asset('assets/background.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(color: Colors.black)))),
@@ -181,7 +219,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   const SizedBox(height: 40),
                   const Text('OVER THE BIKE FIT', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
                   const SizedBox(height: 15),
-                  _connectButton(),
+                  _connectButton(), // 💡 버튼 위젯
                   const SizedBox(height: 25),
                   _chartArea(),
                   const Spacer(),
@@ -198,12 +236,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
+  // 💡 버튼 눌림 기능 구현
   Widget _connectButton() => GestureDetector(
-    onTap: () {}, // 수동 연결 로직 호출
+    onTap: _isWatchConnected ? null : _startScan,
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.greenAccent, width: 1.2)),
-      child: Text(_isWatchConnected ? "연결됨" : "워치 연결", style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6), 
+        borderRadius: BorderRadius.circular(15), 
+        border: Border.all(color: _isWatchConnected ? Colors.blue : Colors.greenAccent, width: 1.2)
+      ),
+      child: Text(
+        _isWatchConnected ? "연결됨" : (_isScanning ? "찾는 중..." : "워치 연결"), 
+        style: TextStyle(color: _isWatchConnected ? Colors.blue : Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)
+      ),
     ),
   );
 
@@ -254,7 +300,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   ]);
 }
 
-// --- 운동 기록 화면 ---
+// --- HistoryScreen 클래스는 이전과 동일하게 유지 ---
 class HistoryScreen extends StatefulWidget {
   final List<WorkoutRecord> records;
   final Function onSync;
@@ -288,10 +334,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = widget.records.where((r) => 
-      _selectedDay == null || r.date == DateFormat('yyyy-MM-dd').format(_selectedDay!)
-    ).toList();
-
+    final filtered = widget.records.where((r) => _selectedDay == null || r.date == DateFormat('yyyy-MM-dd').format(_selectedDay!)).toList();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(title: const Text("운동 히스토리", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
@@ -305,11 +348,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               String formatted = DateFormat('yyyy-MM-dd').format(day);
               return widget.records.where((r) => r.date == formatted).toList();
             },
-            calendarStyle: const CalendarStyle(
-              defaultTextStyle: TextStyle(color: Colors.black),
-              markerDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
-              selectedDecoration: BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
-            ),
+            calendarStyle: const CalendarStyle(defaultTextStyle: TextStyle(color: Colors.black), markerDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle), selectedDecoration: BoxDecoration(color: Colors.blue, shape: BoxShape.circle)),
             headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true, titleTextStyle: TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.bold)),
           ),
           const Divider(thickness: 1, height: 1),
@@ -325,7 +364,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
                       child: InkWell(
-                        onLongPress: () => _confirmDelete(r), // 💡 길게 눌러 삭제
+                        onLongPress: () => _confirmDelete(r),
                         borderRadius: BorderRadius.circular(15),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
