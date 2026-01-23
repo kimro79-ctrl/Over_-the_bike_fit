@@ -16,24 +16,25 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.0
 
-# 깃허브 폴더 구조에 맞게 경로 수정
+# 1. 앱 아이콘 (assets 폴더에 해당 파일이 있어야 함)
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/app_icon.png" 
+  image_path: "assets/app_icon.png"
 
+# 2. 스플래시 화면
 flutter_native_splash:
   color: "#000000"
-  image: "assets/icon/bike_ui_dark.png" # 존재하는 파일로 지정
+  image: "assets/splash.png"
+  android_12:
+    image: "assets/splash.png"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/background.png
-    - assets/icon/app_icon.png
-    - assets/icon/bike_ui_dark.png
-    - assets/icon/heart.png
+    - assets/app_icon.png
+    - assets/splash.png
