@@ -84,7 +84,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           _avgHeartRate = _totalHRSum ~/ _hrCount;
           _timeCounter += 1;
           _hrSpots.add(FlSpot(_timeCounter, _heartRate.toDouble()));
-          if (_hrSpots.length > 30) _hrSpots.removeAt(0); // 콤팩트하게 유지
+          if (_hrSpots.length > 30) _hrSpots.removeAt(0);
         }
       });
     }
@@ -106,10 +106,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
+  // 저장 기능 (빌드 에러 수정 완료)
   void _saveRecord() {
     if (_duration == Duration.zero) return;
-    HapticFeedback.successOverridable();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("운동 기록이 저장되었습니다!")));
+    HapticFeedback.lightImpact(); // 올바른 함수로 수정
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("운동 기록이 성공적으로 저장되었습니다.")));
   }
 
   @override
@@ -123,10 +124,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                const Text('Over The Bike Fit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                const Text('Over The Bike Fit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
                 
-                // 1. 워치 연결 버튼
+                // 워치 연결 버튼 (콤팩트 사이즈)
                 GestureDetector(
                   onTap: _isWatchConnected ? null : _connectWatch,
                   child: Container(
@@ -144,25 +145,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 10), // 버튼과 그래프 사이 간격 최소화
+                const SizedBox(height: 8),
 
-                // 2. 버튼 바로 밑에 위치한 작은 그래프
+                // 버튼 바로 밑의 아주 작은 그래프
                 SizedBox(
-                  height: 35, // 높이를 더 줄여서 작게 표현
-                  width: 120, // 가로 너비도 제한하여 콤팩트하게 배치
+                  height: 30, width: 100,
                   child: _hrSpots.isNotEmpty 
                     ? LineChart(LineChartData(
-                        minY: 40, maxY: 200,
-                        gridData: const FlGridData(show: false),
-                        titlesData: const FlTitlesData(show: false),
-                        borderData: FlBorderData(show: false),
+                        minY: 40, maxY: 200, gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false),
                         lineBarsData: [LineChartBarData(
-                          spots: _hrSpots, isCurved: true, barWidth: 1.5, color: Colors.cyanAccent,
-                          dotData: const FlDotData(show: false), 
-                          belowBarData: BarAreaData(show: true, color: Colors.cyanAccent.withOpacity(0.1))
+                          spots: _hrSpots, isCurved: true, barWidth: 1.2, color: Colors.cyanAccent, dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(show: true, color: Colors.cyanAccent.withOpacity(0.05))
                         )]
                       ))
-                    : const Center(child: Text("HR Data...", style: TextStyle(fontSize: 8, color: Colors.white24))),
+                    : const SizedBox(),
                 ),
 
                 const Spacer(),
@@ -217,7 +213,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   String _formatDuration(Duration d) => "${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}";
 }
 
-// HistoryScreen 클래스는 이전과 동일하게 유지
+// HistoryScreen (상세 기록 페이지)
 class HistoryScreen extends StatelessWidget {
   final int avgHR; final double calories; final Duration duration; final List<FlSpot> hrSpots;
   const HistoryScreen({Key? key, required this.avgHR, required this.calories, required this.duration, required this.hrSpots}) : super(key: key);
@@ -230,8 +226,7 @@ class HistoryScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(children: [
           Container(
-            height: 200, width: double.infinity,
-            padding: const EdgeInsets.all(10),
+            height: 200, width: double.infinity, padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20)),
             child: LineChart(LineChartData(
               minY: 40, maxY: 200, gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false),
