@@ -19,13 +19,11 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.0
 
-# 아이콘 경로 수정
 flutter_icons:
   android: true
   ios: true
   image_path: "assets/icon/app_icon.png"
 
-# 스플래시 경로 수정
 flutter_native_splash:
   color: "#000000"
   image: "assets/splash/splash_screen.png"
