@@ -1,4 +1,4 @@
-name: BikeFit Fresh Build
+name: BikeFit Absolute Build
 on: [push, workflow_dispatch]
 
 jobs:
@@ -19,22 +19,35 @@ jobs:
           flutter-version: '3.27.1'
           channel: 'stable'
 
-      - name: 안드로이드 설정 초기화 및 빌드
+      - name: 안드로이드 v2 임베딩 강제 적용 및 빌드
         run: |
-          # 1. 기존 안드로이드 폴더 삭제 (꼬인 설정 제거)
+          # 1. 안드로이드 폴더 초기화
           rm -rf android
+          flutter create . --platforms android --org com.overthebike --project-name over_the_bike_fit
           
-          # 2. 프로젝트 재구성 (최신 v2 embedding 표준 적용)
-          flutter create . --platforms android --project-name indoor_fit_app
+          # 2. V2 임베딩을 위한 MainActivity 강제 생성 (에러 방지 핵심)
+          mkdir -p android/app/src/main/java/com/overthebike/over_the_bike_fit/
+          cat <<EOF > android/app/src/main/java/com/overthebike/over_the_bike_fit/MainActivity.java
+          package com.overthebike.over_the_bike_fit;
+          import io.flutter.embedding.android.FlutterActivity;
+          public class MainActivity extends FlutterActivity {
+          }
+          EOF
+
+          # 3. 블루투스 권한 자동 주입
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' android/app/src/main/AndroidManifest.xml
           
-          # 3. 라이브러리 설치
+          # 4. 종속성 및 리소스 설치
           flutter pub get
-          
-          # 4. 빌드 실행
+          # 아이콘/스플래시 생성 (실패해도 빌드는 계속 진행)
+          flutter pub run flutter_launcher_icons:main || true
+          flutter pub run flutter_native_splash:create || true
+
+          # 5. 빌드 (표준 모드로 실행)
           flutter build apk --debug --no-tree-shake-icons
 
       - name: APK 파일 추출
         uses: actions/upload-artifact@v4
         with:
-          name: Indoor_bike_fit_fixed
+          name: BikeFit_Fixed_V4
           path: build/app/outputs/flutter-apk/app-debug.apk
