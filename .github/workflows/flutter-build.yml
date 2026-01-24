@@ -39,5 +39,5 @@ jobs:
       - name: APK 파일 추출
         uses: actions/upload-artifact@v4
         with:
-          name: over-the-bike-final
+          name: Indoor_bike_fit
           path: build/app/outputs/flutter-apk/app-debug.apk
