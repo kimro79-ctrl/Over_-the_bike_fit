@@ -1,4 +1,4 @@
-Name: BikeFit Final Success Build
+name: BikeFit Final Success Build
 on: [push, workflow_dispatch]
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
 
       - name: 안드로이드 환경 강제 설정 및 에러 수정
         run: |
-          # 1. 안드로이드 폴더 초기화 (클린 상태 유지)
+          # 1. 안드로이드 폴더 초기화 (어제 성공했던 핵심 로직)
           rm -rf android
           flutter create . --platforms android --org com.overthebike --project-name over_the_bike_fit
           
@@ -34,20 +34,23 @@ jobs:
           }
           EOF
 
-          # 3. dexBuilder 에러 방지를 위한 Multidex 및 권한 설정
-          # build.gradle 파일의 defaultConfig 섹션에 multiDexEnabled true 추가
+          # 3. dexBuilder 에러(Multidex) 및 블루투스 권한 수정
+          # build.gradle에 multiDexEnabled true 강제 주입 (로그상의 dexBuilder 에러 해결책)
           sed -i '/defaultConfig {/a \        multiDexEnabled true' android/app/build.gradle
           
-          # AndroidManifest.xml에 블루투스 권한 주입
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' android/app/src/main/AndroidManifest.xml
+          # AndroidManifest.xml에 모든 블루투스 관련 권한 정밀 주입 (워치 연결 버튼 해결)
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />' android/app/src/main/AndroidManifest.xml
 
-          # 4. 종속성 설치 및 빌드
+          # 4. 종속성 설치 및 아이콘 생성 (앱 아이콘 해결)
           flutter pub get
+          # pubspec.yaml 설정을 바탕으로 아이콘 생성 실행
+          flutter pub run flutter_launcher_icons:main || true
+
+          # 5. 최종 빌드
           flutter build apk --debug --no-tree-shake-icons
 
       - name: APK 파일 추출
         uses: actions/upload-artifact@v4
         with:
-          name: IndoorBikeFit_Final_Ready
+          name: IndoorBikeFit_V6_Complete
           path: build/app/outputs/flutter-apk/app-debug.apk
-어제 최종 성공한 코드야
