@@ -32,6 +32,7 @@ class BikeFitApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Indoor bike fit', // 앱 타이틀 수정
       theme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
       home: const WorkoutScreen(),
     );
@@ -65,7 +66,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _loadRecords();
   }
 
-  // 워치 스캔 팝업 (기존 기능 유지)
+  // 워치 스캔 팝업
   void _showDeviceScanPopup() async {
     if (_isWatchConnected) return;
     await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
@@ -152,7 +153,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
-  // 💡 [기록 저장 로직 수정] 멈추었을 때만 저장 가능
   void _handleSaveRecord() {
     if (_isWorkingOut) {
       _showToast("운동을 먼저 정지해 주세요.");
@@ -171,7 +171,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _showToast("기록이 저장되었습니다.");
   }
 
-  // 데이터 관리 로직
   Future<void> _loadRecords() async {
     final prefs = await SharedPreferences.getInstance();
     final String? recordsJson = prefs.getString('workout_records');
@@ -206,7 +205,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  const Text('OVER THE BIKE FIT', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+                  // ⭐ 이름 수정된 부분
+                  const Text('Indoor bike fit', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
                   const SizedBox(height: 15),
                   _connectButton(),
                   const SizedBox(height: 25),
@@ -225,7 +225,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  // --- 기존 UI 위젯 유지 ---
   Widget _connectButton() => GestureDetector(
     onTap: _showDeviceScanPopup, 
     child: Container(
@@ -258,7 +257,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       const SizedBox(width: 15),
       _actionBtn(Icons.refresh, "리셋", () { if(!_isWorkingOut) setState((){_duration=Duration.zero;_calories=0.0;_avgHeartRate=0;_heartRate=0;_hrSpots=[];}); }),
       const SizedBox(width: 15),
-      // 💡 저장 버튼: 상태에 따라 투명도 조절
       Opacity(
         opacity: _isWorkingOut ? 0.3 : 1.0,
         child: _actionBtn(Icons.save, "저장", _handleSaveRecord),
@@ -273,7 +271,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _showToast(String msg) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1))); }
 }
 
-// HistoryScreen 클래스는 기존과 동일하게 유지... (생략)
 class HistoryScreen extends StatefulWidget {
   final List<WorkoutRecord> records;
   final Function onSync;
