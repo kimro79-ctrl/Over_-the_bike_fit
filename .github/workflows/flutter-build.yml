@@ -1,56 +1,74 @@
-name: BikeFit Final Success Build
+name: BikeFit Final Stable Build
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. 코드 체크아웃
       - uses: actions/checkout@v4
 
+      # 2. Java 환경 설정
       - name: Java Setup
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      # 3. Flutter 환경 설정
       - name: Flutter Setup
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.1'
           channel: 'stable'
 
-      - name: 안드로이드 v2 임베딩 및 멀티덱스 에러 수정
+      # 4. Android 빌드 설정 보정 및 Multidex 오류 수정
+      - name: Android Build Fix & Multidex Configuration
         run: |
-          # 1. 안드로이드 폴더 초기화 (기본 구조 재생성)
-          rm -rf android
-          flutter create . --platforms android --org com.overthebike --project-name over_the_bike_fit
-          
-          # 2. V2 임베딩 MainActivity 강제 생성
-          mkdir -p android/app/src/main/java/com/overthebike/over_the_bike_fit/
-          cat <<EOF > android/app/src/main/java/com/overthebike/over_the_bike_fit/MainActivity.java
-          package com.overthebike.over_the_bike_fit;
-          import io.flutter.embedding.android.FlutterActivity;
-          public class MainActivity extends FlutterActivity {
-          }
-          EOF
+          echo "🧩 Android 환경 구성 시작"
 
-          # 3. [핵심] dexBuilder 에러 해결을 위한 Multidex 강제 주입
-          # build.gradle의 defaultConfig 섹션 안에 multiDexEnabled true를 정확히 삽입합니다.
-          sed -i '/defaultConfig {/a \        multiDexEnabled true' android/app/build.gradle
-          
-          # 4. 블루투스 권한 및 앱 이름 설정
-          # AndroidManifest.xml에 필수 권한들을 최상단에 주입합니다.
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.BLUETOOTH" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />' android/app/src/main/AndroidManifest.xml
-          
-          # 5. 종속성 설치 및 빌드
-          flutter pub get
-          # 캐시 정리 후 깨끗하게 빌드 시작
+          # Flutter 캐시 정리
           flutter clean
           flutter pub get
-          flutter build apk --debug --no-tree-shake-icons
 
+          # SDK 버전 강제 설정
+          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' android/app/build.gradle
+          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 34/' android/app/build.gradle
+          sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 21/' android/app/build.gradle
+
+          # Multidex 활성화
+          if ! grep -q "multiDexEnabled true" android/app/build.gradle; then
+            sed -i '/defaultConfig {/a \        multiDexEnabled true' android/app/build.gradle
+          fi
+
+          # Multidex 라이브러리 주입
+          if ! grep -q 'androidx.multidex' android/app/build.gradle; then
+            sed -i '/dependencies {/a \    implementation "androidx.multidex:multidex:2.0.1"' android/app/build.gradle
+          fi
+
+          # Gradle 빌드 메모리 확장
+          echo "org.gradle.jvmargs=-Xmx4g -XX:+HeapDumpOnOutOfMemoryError" >> android/gradle.properties
+
+          # Bluetooth 권한 자동 주입 (없을 시 추가)
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "BLUETOOTH_CONNECT" $MANIFEST; then
+            sed -i '/<application/i \
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />\
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\
+    <uses-permission android:name="android.permission.BLUETOOTH" />\
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />' $MANIFEST
+          fi
+
+          echo "⚙️ 환경 설정 완료. 빌드 시작"
+
+          # 빌드 실행 (디버그 APK)
+          flutter build apk --debug --no-tree-shake-icons --no-shrink
+
+      # 5. 빌드 결과물 업로드
       - name: APK 파일 추출
         uses: actions/upload-artifact@v4
         with:
-          name: IndoorBikeFit_Fixed_V7
+          name: IndoorBikeFit_Fixed_V8
           path: build/app/outputs/flutter-apk/app-debug.apk
