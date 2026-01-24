@@ -1,6 +1,6 @@
 workflows:
   android-release:
-    name: OverTheBikeFit Build
+    name: Indoor bike fit Build
     environment:
       flutter: stable
     scripts:
