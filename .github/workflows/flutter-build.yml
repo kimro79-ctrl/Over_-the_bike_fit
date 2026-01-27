@@ -41,7 +41,7 @@ jobs:
           </manifest>
           EOF
 
-      - name: 서명 정보 및 build.gradle 강제 패치
+      - name: 서명 정보 및 build.gradle 자동 생성
         run: |
           # 1. 서명 정보 파일 생성
           echo "storeFile=my-release-key.jks" > android/key.properties
@@ -49,18 +49,18 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
 
-          # 2. build.gradle 파일 내용 완전히 새로 작성 (에러 방지용 가장 확실한 방법)
+          # 2. build.gradle 작성 (에러 방지를 위해 plugins 블록을 맨 위로 배치)
           cat <<EOF > android/app/build.gradle
-          def g_keystoreProperties = new Properties()
-          def g_keystorePropertiesFile = rootProject.file('key.properties')
-          if (g_keystorePropertiesFile.exists()) {
-              g_keystoreProperties.load(new FileInputStream(g_keystorePropertiesFile))
-          }
-
           plugins {
               id "com.android.application"
               id "kotlin-android"
               id "dev.flutter.flutter-gradle-plugin"
+          }
+
+          def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file('key.properties')
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
           }
 
           android {
@@ -74,10 +74,6 @@ jobs:
 
               kotlinOptions {
                   jvmTarget = '17'
-              }
-
-              sourceSets {
-                  main.java.srcDirs += 'src/main/kotlin'
               }
 
               defaultConfig {
