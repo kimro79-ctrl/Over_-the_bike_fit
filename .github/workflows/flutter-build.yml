@@ -1,4 +1,4 @@
-name: BikeFit Final Signed AAB Build
+name: BikeFit Final Ultra Build
 on: [push, workflow_dispatch]
 
 jobs:
@@ -17,13 +17,13 @@ jobs:
           flutter-version: '3.27.1'
           channel: 'stable'
 
-      - name: 환경 초기화 및 프로젝트 설정
+      - name: 프로젝트 초기화 및 SDK 35 설정
         run: |
           rm -rf android
           flutter create . --platforms android --org com.overthebike --project-name over_the_bike_fit
           flutter pub get
           
-          # AndroidManifest.xml 권한 설정
+          # AndroidManifest 설정
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.overthebike.over_the_bike_fit">
               <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
@@ -41,15 +41,17 @@ jobs:
           </manifest>
           EOF
 
-      - name: 서명 정보 및 build.gradle 자동 생성
+      - name: 서명 파일(JKS) 현장 생성 및 Gradle 설정
         run: |
-          # 1. 서명 정보 파일 생성
-          echo "storeFile=my-release-key.jks" > android/key.properties
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          # 1. 빌드 서버에서 즉석으로 jks 키 생성 (파일 누락 에러 방지)
+          keytool -genkey -v -keystore android/app/my-release-key.jks \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias "${{ secrets.KEY_ALIAS }}" \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            -dname "CN=BikeFit, OU=Dev, O=MyCompany, L=Seoul, S=Seoul, C=KR"
 
-          # 2. build.gradle 작성 (에러 방지를 위해 plugins 블록을 맨 위로 배치)
+          # 2. SDK 35 버전을 포함한 build.gradle 작성
           cat <<EOF > android/app/build.gradle
           plugins {
               id "com.android.application"
@@ -57,29 +59,21 @@ jobs:
               id "dev.flutter.flutter-gradle-plugin"
           }
 
-          def keystoreProperties = new Properties()
-          def keystorePropertiesFile = rootProject.file('key.properties')
-          if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-          }
-
           android {
               namespace "com.overthebike.over_the_bike_fit"
-              compileSdk 34
+              compileSdk 35 // 최신 플러그인 요구사항 충족
 
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
               }
 
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
+              kotlinOptions { jvmTarget = '17' }
 
               defaultConfig {
                   applicationId "com.overthebike.over_the_bike_fit"
                   minSdk 21
-                  targetSdk 34
+                  targetSdk 35
                   versionCode 1
                   versionName "1.0.0"
                   multiDexEnabled true
@@ -88,9 +82,9 @@ jobs:
               signingConfigs {
                   release {
                       storeFile file('my-release-key.jks')
-                      storePassword System.getenv("KEYSTORE_PASSWORD")
-                      keyAlias System.getenv("KEY_ALIAS")
-                      keyPassword System.getenv("KEY_PASSWORD")
+                      storePassword "${{ secrets.KEYSTORE_PASSWORD }}"
+                      keyAlias "${{ secrets.KEY_ALIAS }}"
+                      keyPassword "${{ secrets.KEY_PASSWORD }}"
                   }
               }
 
@@ -103,9 +97,7 @@ jobs:
               }
           }
 
-          flutter {
-              source '../..'
-          }
+          flutter { source '../..' }
           EOF
 
       - name: 정식 출시용 AAB 빌드
@@ -118,5 +110,5 @@ jobs:
       - name: 서명된 AAB 파일 추출
         uses: actions/upload-artifact@v4
         with:
-          name: BikeFit_Signed_AAB
+          name: BikeFit_Final_AAB
           path: build/app/outputs/bundle/release/app-release.aab
