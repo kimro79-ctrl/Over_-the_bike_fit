@@ -1,4 +1,4 @@
-import 'dart:async';
+ㅣimport 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -80,11 +80,21 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
+  // --- 워치 스캔 팝업 (강력한 스캔 로직 적용) ---
   void _showDeviceScanPopup() async {
     if (_isWatchConnected) return;
     await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
     _filteredResults.clear();
-    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+
+    // 갤럭시 워치 검색 성능 향상을 위해 lowLatency 모드 적용
+    await FlutterBluePlus.startScan(
+      timeout: const Duration(seconds: 15),
+      androidUsesFineLocation: true,
+      androidScanMode: AndroidScanMode.lowLatency,
+    );
+
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context, 
       backgroundColor: const Color(0xFF1E1E1E), 
@@ -97,12 +107,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         return Container(padding: const EdgeInsets.all(20), height: MediaQuery.of(context).size.height * 0.4, child: Column(children: [
           Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          const Text("워치 검색", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text("근처 워치 검색", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
           Expanded(child: ListView.builder(itemCount: _filteredResults.length, itemBuilder: (context, index) {
             final d = _filteredResults[index].device;
+            final name = d.platformName.isEmpty ? "기기 (${d.remoteId})" : d.platformName;
             return ListTile(
               leading: const Icon(Icons.watch, color: Colors.blueAccent), 
-              title: Text(d.platformName.isEmpty ? "기기 (${d.remoteId})" : d.platformName), 
+              title: Text(name, style: const TextStyle(color: Colors.white)), 
               onTap: () { Navigator.pop(context); _connectToDevice(d); }
             );
           })) 
@@ -111,7 +122,21 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _connectToDevice(BluetoothDevice device) async { try { await device.connect(); _setupDevice(device); } catch (e) { _showToast("연결 실패"); } }
-  void _setupDevice(BluetoothDevice device) async { setState(() { _isWatchConnected = true; }); List<BluetoothService> services = await device.discoverServices(); for (var s in services) { if (s.uuid == Guid("180D")) { for (var c in s.characteristics) { if (c.uuid == Guid("2A37")) { await c.setNotifyValue(true); c.lastValueStream.listen(_decodeHR); } } } } } 
+  
+  void _setupDevice(BluetoothDevice device) async { 
+    setState(() { _isWatchConnected = true; }); 
+    List<BluetoothService> services = await device.discoverServices();
+    for (var s in services) { 
+      if (s.uuid == Guid("180D")) { 
+        for (var c in s.characteristics) { 
+          if (c.uuid == Guid("2A37")) { 
+            await c.setNotifyValue(true);
+            c.lastValueStream.listen(_decodeHR); 
+          } 
+        } 
+      } 
+    } 
+  }
 
   void _decodeHR(List<int> data) {
     if (data.isEmpty) return;
@@ -141,9 +166,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           const SizedBox(height: 25),
           const Text("목표 칼로리 설정", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 20),
-          TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontSize: 36, fontWeight: FontWeight.bold), decoration: const InputDecoration(suffixText: "kcal", suffixStyle: TextStyle(color: Colors.white38, fontSize: 16))),
+          TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, textAlign: TextAlign.center, style: const TextStyle(color: Colors.blueAccent, fontSize: 36, fontWeight: FontWeight.bold), decoration: const InputDecoration(suffixText: "kcal", suffixStyle: TextStyle(color: Colors.white38, fontSize: 16))),
           const Spacer(),
-          SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)), onPressed: () async {
+          SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 16)), onPressed: () async {
             setState(() { _goalCalories = double.tryParse(controller.text) ?? 300.0; });
             (await SharedPreferences.getInstance()).setDouble('goal_calories', _goalCalories);
             Navigator.pop(context);
@@ -159,46 +184,39 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Widget build(BuildContext context) {
     double progress = (_calories / _goalCalories).clamp(0.0, 1.0);
     return Scaffold(
-      resizeToAvoidBottomInset: true, // 키보드 대응
-      body: Stack(children: [
-        Positioned.fill(child: Opacity(opacity: 0.8, child: Image.asset('assets/background.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(color: Colors.black)))),
-        SafeArea(
-          child: SingleChildScrollView( // 오버플로우 방지
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(children: [
-                const SizedBox(height: 40),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('Indoor bike fit', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
-                  _connectButton(),
-                ]),
-                const SizedBox(height: 25),
-                _chartArea(),
-                const SizedBox(height: 100), // 이미지 중앙 배치를 위한 간격
-                GestureDetector(onTap: _showGoalSettings, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white10)), child: Column(children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    const Text("CALORIE GOAL", style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
-                    Text("${_calories.toInt()} / ${_goalCalories.toInt()} kcal", style: const TextStyle(fontSize: 12, color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-                  ]),
-                  const SizedBox(height: 10),
-                  ClipRRect(borderRadius: BorderRadius.circular(5), child: SizedBox(height: 10, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white12, color: Colors.greenAccent))),
-                ]))),
-                const SizedBox(height: 20),
-                _dataBanner(),
-                const SizedBox(height: 30),
-                _controlButtons(),
-                const SizedBox(height: 40),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(children: [
+            const SizedBox(height: 40),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('Indoor bike fit', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
+              _connectButton(),
+            ]),
+            const SizedBox(height: 30),
+            _chartArea(),
+            const SizedBox(height: 100),
+            GestureDetector(onTap: _showGoalSettings, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white10)), child: Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text("CALORIE GOAL", style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
+                Text("${_calories.toInt()} / ${_goalCalories.toInt()} kcal", style: const TextStyle(fontSize: 12, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
               ]),
-            ),
-          ),
+              const SizedBox(height: 10),
+              ClipRRect(borderRadius: BorderRadius.circular(5), child: SizedBox(height: 10, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white12, color: Colors.blueAccent))),
+            ]))),
+            const SizedBox(height: 20),
+            _dataBanner(),
+            const SizedBox(height: 30),
+            _controlButtons(),
+          ]),
         ),
-      ]),
+      ),
     );
   }
 
-  Widget _connectButton() => GestureDetector(onTap: _showDeviceScanPopup, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.greenAccent)), child: Text(_isWatchConnected ? "연결됨" : "워치 연결", style: const TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold))));
-  Widget _chartArea() => SizedBox(height: 60, child: LineChart(LineChartData(gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false), lineBarsData: [LineChartBarData(spots: _hrSpots.isEmpty ? [const FlSpot(0, 0)] : _hrSpots, isCurved: true, color: Colors.greenAccent, barWidth: 2, dotData: const FlDotData(show: false))])));
-  Widget _dataBanner() => Container(padding: const EdgeInsets.symmetric(vertical: 20), decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_statItem("심박수", "$_heartRate", Colors.greenAccent), _statItem("평균", "$_avgHeartRate", Colors.redAccent), _statItem("칼로리", _calories.toStringAsFixed(1), Colors.orangeAccent), _statItem("시간", "${_duration.inMinutes}:${(_duration.inSeconds % 60).toString().padLeft(2, '0')}", Colors.blueAccent)]));
+  Widget _connectButton() => GestureDetector(onTap: _showDeviceScanPopup, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12), border: Border.all(color: _isWatchConnected ? Colors.blueAccent : Colors.white38)), child: Text(_isWatchConnected ? "연결됨" : "워치 연결", style: TextStyle(color: _isWatchConnected ? Colors.blueAccent : Colors.white70, fontSize: 10, fontWeight: FontWeight.bold))));
+  Widget _chartArea() => SizedBox(height: 60, child: LineChart(LineChartData(gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false), lineBarsData: [LineChartBarData(spots: _hrSpots.isEmpty ? [const FlSpot(0, 0)] : _hrSpots, isCurved: true, color: Colors.blueAccent, barWidth: 3, dotData: const FlDotData(show: false))])));
+  Widget _dataBanner() => Container(padding: const EdgeInsets.symmetric(vertical: 20), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_statItem("심박수", "$_heartRate", Colors.blueAccent), _statItem("평균", "$_avgHeartRate", Colors.redAccent), _statItem("칼로리", _calories.toStringAsFixed(1), Colors.orangeAccent), _statItem("시간", "${_duration.inMinutes}:${(_duration.inSeconds % 60).toString().padLeft(2, '0')}", Colors.white)]));
   Widget _statItem(String l, String v, Color c) => Column(children: [Text(l, style: const TextStyle(fontSize: 10, color: Colors.white60)), const SizedBox(height: 6), Text(v, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: c))]);
   
   Widget _controlButtons() => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -215,13 +233,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     const SizedBox(width: 15),
     _actionBtn(Icons.refresh, "리셋", () { 
       if(!_isWorkingOut) { setState((){ _duration=Duration.zero; _calories=0.0; _avgHeartRate=0; _heartRate=0; _hrSpots=[]; _timeCounter=0; }); _showToast("리셋되었습니다."); } 
-      else { _showToast("운동 중엔 리셋 불가"); }
     }),
     const SizedBox(width: 15),
     _actionBtn(Icons.save, "저장", () async {
       if (_isWorkingOut) { _showToast("일시정지 후 저장하세요."); return; }
-      if (_duration.inSeconds < 5) { _showToast("기록이 너무 짧습니다."); return; }
-      final newRec = WorkoutRecord(DateTime.now().toString(), DateFormat('yyyy-MM-dd').format(DateTime.now()), _avgHeartRate, _calories, _duration);
+      if (_duration.inSeconds < 5) return;
+      final newRec = WorkoutRecord(DateTime.now().millisecondsSinceEpoch.toString(), DateFormat('yyyy-MM-dd').format(DateTime.now()), _avgHeartRate, _calories, _duration);
       setState(() { _records.insert(0, newRec); });
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('workout_records', jsonEncode(_records.map((r) => r.toJson()).toList()));
@@ -229,51 +246,56 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }),
     const SizedBox(width: 15),
     _actionBtn(Icons.calendar_month, "기록", () async {
-      await Navigator.push(context, MaterialPageRoute(builder: (c) => HistoryScreen(records: _records, onSync: _loadInitialData)));
+      await Navigator.push(context, MaterialPageRoute(builder: (c) => HistoryScreen(records: _records)));
       _loadInitialData();
     }),
-  ]); 
-
-  Widget _actionBtn(IconData i, String l, VoidCallback t) => Column(children: [GestureDetector(onTap: t, child: Container(width: 55, height: 55, decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white24)), child: Icon(i, color: Colors.white, size: 24))), const SizedBox(height: 6), Text(l, style: const TextStyle(fontSize: 10, color: Colors.white70))]);
+  ]);
+  
+  Widget _actionBtn(IconData i, String l, VoidCallback t) => Column(children: [GestureDetector(onTap: t, child: Container(width: 55, height: 55, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white24)), child: Icon(i, color: Colors.white, size: 24))), const SizedBox(height: 6), Text(l, style: const TextStyle(fontSize: 10, color: Colors.white70))]);
 }
 
-// --- 히스토리 화면 (버전 에러 수정됨) ---
 class HistoryScreen extends StatefulWidget {
   final List<WorkoutRecord> records;
-  final VoidCallback onSync;
-  const HistoryScreen({Key? key, required this.records, required this.onSync}) : super(key: key);
+  const HistoryScreen({Key? key, required this.records}) : super(key: key);
   @override _HistoryScreenState createState() => _HistoryScreenState();
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  double _weight = 70.0;
   late List<WorkoutRecord> _currentRecords;
 
   @override
-  void initState() { super.initState(); _currentRecords = List.from(widget.records); _selectedDay = _focusedDay; _loadWeight(); }
-
-  Future<void> _loadWeight() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() { _weight = prefs.getDouble('last_weight') ?? 70.0; });
+  void initState() { 
+    super.initState(); 
+    _currentRecords = List.from(widget.records); 
+    _selectedDay = _focusedDay; 
   }
 
-  void _showGraphPopup(String title, int days, Color color) {
-    final limit = DateTime.now().subtract(Duration(days: days));
-    var filtered = _currentRecords.where((r) => DateTime.parse(r.date).isAfter(limit)).toList().reversed.toList();
-    double maxCal = filtered.isEmpty ? 100 : filtered.map((e) => e.calories).reduce((a, b) => a > b ? a : b);
+  // ✅ 데이터 시각화: 최근 7일 막대 그래프 (빌드 에러 해결 문법)
+  void _showGraphPopup() {
+    final limit = DateTime.now().subtract(const Duration(days: 7));
+    var filtered = _currentRecords.where((r) => DateTime.parse(r.date).isAfter(limit)).toList();
+    if (filtered.isEmpty) return;
 
+    double maxCal = filtered.map((e) => e.calories).reduce((a, b) => a > b ? a : b);
+    
     showModalBottomSheet(context: context, backgroundColor: Colors.white, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))), 
-      builder: (context) => Container(height: 350, padding: const EdgeInsets.all(20), child: Column(children: [
-        const Text("운동 리포트", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 20),
+      builder: (context) => Container(height: 350, padding: const EdgeInsets.all(25), child: Column(children: [
+        const Text("최근 7일 칼로리 소모", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        const SizedBox(height: 30),
         Expanded(child: BarChart(BarChartData(
-          maxY: maxCal * 1.5,
-          barGroups: List.generate(filtered.length, (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: filtered[i].calories, color: color, width: 16)])),
-          // ✅ 에러가 났던 getTooltipColor를 제거하고 최신 문법으로 수정
-          barTouchData: BarTouchData(touchTooltipData: BarTouchTooltipData(tooltipBgColor: color.withOpacity(0.1))),
-          gridData: const FlGridData(show: false), titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false), 
+          maxY: maxCal * 1.3,
+          barGroups: List.generate(filtered.length, (i) => BarChartGroupData(x: i, barRods: [BarChartRodData(toY: filtered[i].calories, color: Colors.blueAccent, width: 18, borderRadius: BorderRadius.circular(4))])),
+          // ✅ 에러가 났던 getTooltipColor 대신 최신 문법 적용
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (group) => Colors.blueAccent.withOpacity(0.9),
+            ),
+          ),
+          gridData: const FlGridData(show: false), 
+          titlesData: const FlTitlesData(show: false), 
+          borderData: FlBorderData(show: false), 
         ))),
       ]))
     );
@@ -285,14 +307,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Theme(
       data: ThemeData(brightness: Brightness.light),
       child: Scaffold(
-        appBar: AppBar(title: const Text("기록 리포트")),
+        appBar: AppBar(
+          title: const Text("기록 리포트"),
+          actions: [IconButton(icon: const Icon(Icons.bar_chart), onPressed: _showGraphPopup)],
+        ),
         body: SingleChildScrollView(child: Column(children: [
           TableCalendar(
             locale: 'ko_KR', firstDay: DateTime(2024), lastDay: DateTime(2030), focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: (sel, foc) => setState(() { _selectedDay = sel; _focusedDay = foc; }),
+            calendarStyle: const CalendarStyle(todayDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle)),
           ),
-          ...dailyRecords.map((r) => ListTile(title: Text("${r.calories.toInt()} kcal"), subtitle: Text("${r.duration.inMinutes}분"))).toList()
+          const Divider(),
+          ...dailyRecords.map((r) => ListTile(
+            leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.directions_bike, color: Colors.white, size: 20)),
+            title: Text("${r.calories.toInt()} kcal 소모"), 
+            subtitle: Text("${r.duration.inMinutes}분 운동 | 평균 ${r.avgHR} BPM"),
+          )).toList()
         ])),
       ),
     );
